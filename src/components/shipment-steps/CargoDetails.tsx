@@ -103,6 +103,20 @@ export function CargoDetails({ data, onUpdate, onNext, onBack }: CargoDetailsPro
           </div>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Количество мест
+          </label>
+          <input
+            type="number"
+            value={data.quantityPlaces ?? 1}
+            onChange={(e) => onUpdate({ quantityPlaces: Math.max(1, parseInt(e.target.value) || 1) })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="1"
+            min="1"
+          />
+        </div>
+
         {price !== null && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex justify-between items-center">

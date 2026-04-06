@@ -21,6 +21,9 @@ import { ReceiverDashboard } from './components/ReceiverDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ManagerDashboard } from './components/ManagerDashboard';
 import { ShipmentActionPage } from './components/ShipmentActionPage';
+import { ScannerTerminal } from './components/ScannerTerminal';
+import { DailySheet } from './components/DailySheet';
+import { AuditorTerminal } from './components/AuditorTerminal';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -55,6 +58,18 @@ function AppContent() {
     return <ShipmentActionPage />;
   }
 
+  // Standalone scanner terminal — available for scanning roles
+  const path = window.location.pathname;
+  if (path === '/scanner' && isAuthenticated) {
+    return <ScannerTerminal />;
+  }
+  if (path === '/daily-sheet' && isAuthenticated) {
+    return <DailySheet />;
+  }
+  if (path === '/auditor' && isAuthenticated) {
+    return <AuditorTerminal />;
+  }
+
   if (!isAuthenticated) {
     return <Login />;
   }
@@ -78,6 +93,11 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  // Auditor Dashboard (ревизор — только терминал проверки)
+  if (user?.role === 'auditor') {
+    return <AuditorTerminal />;
   }
 
   // Manager Dashboard
@@ -191,7 +211,7 @@ function AppContent() {
       case 'corporate':
         return <CorporateClients theme={theme} />;
       default:
-        return <NewShipment />;
+        return <NewShipment theme={theme} />;
     }
   };
 

@@ -37,7 +37,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/shipments/by-station/${encodeURIComponent(user.station)}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/shipments/by-station/${encodeURIComponent(user.station)}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         // Add loaded state based on status
@@ -57,40 +60,10 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   useEffect(() => {
     fetchShipments();
 
-    // Setup Socket.IO connection
-    if (!user?.station) return;
-
-    const socketProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(socketProtocol + '//' + window.location.host + '/ws');
-
-    socket.onopen = () => {
-      console.log('Connected to WebSocket');
-      socket.send(JSON.stringify({ action: 'join-station', room: user.station }));
-    };
-
-    socket.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.event === 'new-shipment') {
-        const shipment = msg.data;
-        console.log('New shipment received via WebSocket:', shipment);
-        setShipments(prev => {
-          if (prev.find(s => s.id === shipment.id)) return prev;
-          return [{ ...shipment, loaded: shipment.status === 'Погружен' }, ...prev];
-        });
-      } else if (msg.event === 'shipment-updated') {
-        const updatedShipment = msg.data;
-        console.log('Shipment updated via WebSocket:', updatedShipment);
-        setShipments(prev => prev.map(s =>
-          s.id === updatedShipment.id
-            ? { ...updatedShipment, loaded: updatedShipment.status === 'Погружен' }
-            : s
-        ));
-      }
-    };
-
-    return () => {
-      socket.close();
-    };
+    // Poll every 10 seconds for real-time updates
+    // (backend uses Socket.IO; polling is used here for simplicity)
+    const interval = setInterval(fetchShipments, 10000);
+    return () => clearInterval(interval);
   }, [user?.station]);
 
   const toggleShipmentLoaded = async (shipmentId: string) => {
@@ -100,9 +73,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     const newStatus = shipment.loaded ? 'В пути' : 'Погружен';
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/shipments/${shipmentId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ status: newStatus })
       });
 
@@ -123,9 +100,13 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
 
     setProcessing(true);
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/shipments/${scanInput}/transit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           current_station: user.station,
           operator_id: user.id,

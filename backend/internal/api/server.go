@@ -72,6 +72,7 @@ func (s *Server) routes() chi.Router {
 		s.mountNotificationRoutes(api)
 		s.mountAuditRoutes(api)
 		s.mountReportRoutes(api)
+		s.mountWagonRoutes(api)
 	})
 	return r
 }

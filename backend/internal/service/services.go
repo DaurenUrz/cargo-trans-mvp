@@ -32,6 +32,7 @@ type Services struct {
 	Notifications *NotificationService
 	Reports       *ReportService
 	Audit         *AuditService
+	Wagons        *WagonService
 }
 
 func NewServices(repo Repository, jwtSecret string) Services {
@@ -46,6 +47,7 @@ func NewServices(repo Repository, jwtSecret string) Services {
 		Notifications: &NotificationService{repo: repo},
 		Reports:       &ReportService{repo: repo},
 		Audit:         &AuditService{repo: repo},
+		Wagons:        &WagonService{repo: repo},
 	}
 }
 

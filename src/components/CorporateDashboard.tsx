@@ -37,9 +37,13 @@ export function CorporateDashboard({ theme = 'light' }: CorporateDashboardProps)
 
     setIsLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch('/api/payments/topup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ userId: user.id, amount: parseFloat(amount) })
       });
 

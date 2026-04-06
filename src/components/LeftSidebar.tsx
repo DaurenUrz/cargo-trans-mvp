@@ -1,4 +1,4 @@
-import { Package, List, Truck, MapPin, FileText, User, Building2, Warehouse, Settings as SettingsIcon } from 'lucide-react';
+import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeftSidebarProps {
