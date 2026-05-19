@@ -14,6 +14,14 @@ import (
 func main() {
 	cfg := config.Load()
 
+	if cfg.JWTSecret == "dev-secret" {
+		log.Printf("==========================================================================")
+		log.Printf("⚠️  WARNING: JWT_SECRET is set to the default 'dev-secret' value!")
+		log.Printf("⚠️  This is highly insecure for production environments.")
+		log.Printf("⚠️  Please set the JWT_SECRET environment variable.")
+		log.Printf("==========================================================================")
+	}
+
 	db, err := postgres.Open(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("open postgres: %v", err)

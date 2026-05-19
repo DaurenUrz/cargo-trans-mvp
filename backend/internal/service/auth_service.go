@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -105,7 +106,11 @@ func (s *AuthService) ForgotPassword(ctx context.Context, login string) error {
 		return errors.New("к аккаунту не привязан номер телефона")
 	}
 
-	code := fmt.Sprintf("%04d", rand.Intn(10000))
+	nBig, err := rand.Int(rand.Reader, big.NewInt(10000))
+	if err != nil {
+		return err
+	}
+	code := fmt.Sprintf("%04d", nBig.Int64())
 	s.otpStore.Store(user.Login, otpData{
 		Code:      code,
 		ExpiresAt: time.Now().Add(5 * time.Minute),
@@ -157,6 +162,9 @@ func (s *AuthService) ParseToken(token string) (AuthenticatedUser, error) {
 	}
 	claims := jwt.MapClaims{}
 	parsed, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(s.jwtSecret), nil
 	})
 	if err != nil || !parsed.Valid {
@@ -203,6 +211,9 @@ func (s *AuthService) IssueQRLoginToken(ctx context.Context, userID string) (str
 func (s *AuthService) QRLogin(ctx context.Context, qrToken string) (model.User, string, error) {
 	claims := jwt.MapClaims{}
 	parsed, err := jwt.ParseWithClaims(qrToken, claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return []byte(s.jwtSecret), nil
 	})
 	if err != nil || !parsed.Valid {

@@ -41,6 +41,8 @@ func TestShipmentCreationScenarios(t *testing.T) {
 
 	ctx := context.Background()
 
+	ptr := func(s string) *string { return &s }
+
 	tests := []struct {
 		name     string
 		req      CreateShipmentRequest
@@ -56,6 +58,8 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				Weight: "10",
 				QuantityPlaces: 1,
 				IsDoorToDoor: true,
+				ReceiverName: ptr("Test Receiver"),
+				ReceiverPhone: ptr("77777777777"),
 			},
 			expected: 10976,
 		},
@@ -69,6 +73,8 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				Weight: "10",
 				QuantityPlaces: 1,
 				IsDoorToDoor: true,
+				ReceiverName: ptr("Test Receiver"),
+				ReceiverPhone: ptr("77777777777"),
 			},
 			expected: 976,
 		},
@@ -83,6 +89,8 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				Weight: "10",
 				QuantityPlaces: 1,
 				IsDoorToDoor: true,
+				ReceiverName: ptr("Test Receiver"),
+				ReceiverPhone: ptr("77777777777"),
 			},
 			expected: 10976,
 		},

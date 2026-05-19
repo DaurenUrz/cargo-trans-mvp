@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -122,7 +123,6 @@ func (s *Server) routes() chi.Router {
 		api.Post("/whatsapp/test", s.handleWhatsAppTest)
 		// Admin: database cleanup
 		api.Post("/admin/cleanup", s.handleAdminCleanup)
-		api.Post("/admin/force-cleanup", s.handleAdminForceCleanup)
 	})
 	return r
 }
@@ -138,9 +138,24 @@ func (s *Server) requestLogger(next http.Handler) http.Handler {
 
 func (s *Server) rateLimiter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
-		if colon := strings.LastIndex(ip, ":"); colon != -1 {
-			ip = ip[:colon]
+		ip := r.Header.Get("X-Real-IP")
+		if ip == "" {
+			xff := r.Header.Get("X-Forwarded-For")
+			if xff != "" {
+				if parts := strings.Split(xff, ","); len(parts) > 0 {
+					ip = strings.TrimSpace(parts[0])
+				}
+			}
+		}
+		if ip == "" {
+			if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+				ip = host
+			} else {
+				ip = r.RemoteAddr
+				if colon := strings.LastIndex(ip, ":"); colon != -1 {
+					ip = ip[:colon]
+				}
+			}
 		}
 		
 		s.mu.Lock()
@@ -232,7 +247,7 @@ func handleServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusUnauthorized, "Authentication required")
 	default:
 		log.Printf("[ERROR] unhandled service error: %v", err)
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 	}
 }
 
