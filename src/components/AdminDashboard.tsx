@@ -29,14 +29,41 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   const [qrToken, setQrToken] = useState<string>('');
   const [qrError, setQrError] = useState<string>('');
   const qrSvgRef = useRef<SVGSVGElement | null>(null);
-  const [resetPwEmployee, setResetPwEmployee] = useState<Employee | null>(null);
+  const [resetPwEmployee, setResetPwEmployee] = useState<any | null>(null);
   const [newPw, setNewPw] = useState('');
   const [resetPwLoading, setResetPwLoading] = useState(false);
   const [resetPwMsg, setResetPwMsg] = useState('');
 
+  const [activeSection, setActiveSection] = useState<'employees' | 'clients'>('employees');
+  const [clients, setClients] = useState<any[]>([]);
+  const [_clientsLoading, setClientsLoading] = useState(false);
+
   useEffect(() => {
     fetchEmployees();
+    fetchClients();
   }, []);
+
+  const fetchClients = async () => {
+    setClientsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(withApiBase('/api/users'), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Keep only individual and corporate roles
+        const filtered = data.filter((u: any) => u.role === 'individual' || u.role === 'corporate');
+        setClients(filtered);
+      }
+    } catch (error) {
+      console.error('Failed to fetch clients:', error);
+    } finally {
+      setClientsLoading(false);
+    }
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -171,6 +198,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
 
         if (response.ok) {
           setEmployees(employees.filter(emp => emp.id !== id));
+          setClients(clients.filter(c => c.id !== id));
         }
       } catch (error) {
         console.error('Failed to delete employee:', error);
@@ -260,6 +288,13 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
     (emp.station && emp.station.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const filteredClients = clients.filter(client =>
+    (client.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.login || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.phone || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (client.company || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const stations = [
     'Алматы-1',
     'Астана Нұрлы Жол',
@@ -277,48 +312,119 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
         <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('employeeManagementDesc')}</p>
       </div>
 
-      {/* Статистика */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-blue-900' : 'bg-blue-100'}`}>
-              <Users className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-            </div>
-            <div>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('totalEmployees')}</p>
-              <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{employees.length}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-green-900' : 'bg-green-100'}`}>
-              <Shield className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
-            </div>
-            <div>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('operators')}</p>
-              <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                {employees.filter(e => e.role === 'manager').length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-          <div className="flex items-center gap-3 mb-2">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-orange-900' : 'bg-orange-100'}`}>
-              <Shield className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
-            </div>
-            <div>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('receivers')}</p>
-              <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
-                {employees.filter(e => e.role === 'receiver').length}
-              </p>
-            </div>
-          </div>
-        </div>
+      {/* Переключение вкладок */}
+      <div className={`mb-6 flex gap-4 border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
+        <button
+          onClick={() => setActiveSection('employees')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeSection === 'employees'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-750'
+          }`}
+        >
+          {t('employeesLabel')}
+        </button>
+        <button
+          onClick={() => setActiveSection('clients')}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors ${
+            activeSection === 'clients'
+              ? 'border-blue-600 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-750'
+          }`}
+        >
+          {t('registeredClients')}
+        </button>
       </div>
+
+      {/* Статистика для сотрудников */}
+      {activeSection === 'employees' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-blue-900' : 'bg-blue-100'}`}>
+                <Users className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('totalEmployees')}</p>
+                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{employees.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-green-900' : 'bg-green-100'}`}>
+                <Shield className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('operators')}</p>
+                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {employees.filter(e => e.role === 'manager').length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-orange-900' : 'bg-orange-100'}`}>
+                <Shield className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('receivers')}</p>
+                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {employees.filter(e => e.role === 'receiver').length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Статистика для зарегистрированных лиц */}
+      {activeSection === 'clients' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-blue-900' : 'bg-blue-100'}`}>
+                <Users className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Всего клиентов</p>
+                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{clients.length}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-green-900' : 'bg-green-100'}`}>
+                <Users className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Физические лица</p>
+                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {clients.filter(e => e.role === 'individual').length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className={`rounded-lg shadow-sm border p-5 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isDark ? 'bg-purple-900' : 'bg-purple-100'}`}>
+                <Users className={`w-5 h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+              </div>
+              <div>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Юридические лица</p>
+                <p className={`text-2xl font-semibold ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>
+                  {clients.filter(e => e.role === 'corporate').length}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Поиск и кнопка создания */}
       <div className={`rounded-lg shadow-sm border p-5 mb-6 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -335,13 +441,15 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
             />
           </div>
 
-          <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
-          >
-            <UserPlus className="w-5 h-5" />
-            {t('createEmployee')}
-          </button>
+          {activeSection === 'employees' && (
+            <button
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
+            >
+              <UserPlus className="w-5 h-5" />
+              {t('createEmployee')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -463,135 +571,240 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
       )}
 
       {/* Список сотрудников */}
-      <div className={`rounded-lg shadow-sm border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className={`border-b ${isDark ? 'bg-gray-750 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
-              <tr>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('employeeLabel')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('login')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('role')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('station')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('statusEmployee')}
-                </th>
-                <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('dateCreated')}
-                </th>
-                <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {t('actionsEmployee')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
-              {filteredEmployees.map((employee) => (
-                <tr key={employee.id} className={isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-900' : 'bg-blue-100'}`}>
-                        <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                          {employee.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div className="ml-3">
-                        <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{employee.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{employee.login}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
-                        employee.role === 'train_receiver' ? 'bg-teal-100 text-teal-800' :
-                        employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                        employee.role === 'mobile_group' ? 'bg-amber-100 text-amber-800' :
-                        employee.role === 'courier' ? 'bg-cyan-100 text-cyan-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
-                      {employee.role === 'receiver' ? t('receiver') :
-                        employee.role === 'train_receiver' ? t('roleTrainReceiver') :
-                        employee.role === 'admin' ? t('roleAdmin') :
-                        employee.role === 'direction_head' ? t('roleDirectionHead') :
-                        employee.role === 'chief_head' ? t('roleChiefHead') :
-                        employee.role === 'mobile_group' ? t('roleMobileGroup') :
-                        employee.role === 'courier' ? t('roleCourier') :
-                        t('roleManager')}
-                    </span>
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
-                    {employee.station}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleToggleStatus(employee.id)}
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.status === 'active'
-                        ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                        : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-                        }`}
-                    >
-                      {employee.status === 'active' ? t('activeStatus') : t('inactiveStatus')}
-                    </button>
-                  </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {new Date(employee.createdAt).toLocaleDateString('ru-RU')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
-                      {(employee.role === 'receiver' || employee.role === 'train_receiver') && (
-                        <button
-                          onClick={() => openQrModal(employee)}
-                          className={isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-900'}
-                          title="QR-логин (скачать)"
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => { setResetPwEmployee(employee); setNewPw(''); setResetPwMsg(''); }}
-                        className={isDark ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-900'}
-                        title="Сменить пароль"
-                      >
-                        <KeyRound className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleOpenEdit(employee)}
-                        className={isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-900'}
-                        title="Редактировать"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteEmployee(employee.id)}
-                        className={isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-900'}
-                        title="Удалить"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+      {activeSection === 'employees' && (
+        <div className={`rounded-lg shadow-sm border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className={`border-b ${isDark ? 'bg-gray-750 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <tr>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('employeeLabel')}
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('login')}
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('role')}
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('station')}
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('statusEmployee')}
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('dateCreated')}
+                  </th>
+                  <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    {t('actionsEmployee')}
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredEmployees.length === 0 && (
-          <div className="text-center py-12">
-            <Users className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-            <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>{t('noEmployeesFound')}</p>
+              </thead>
+              <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                {filteredEmployees.map((employee) => (
+                  <tr key={employee.id} className={isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-900' : 'bg-blue-100'}`}>
+                          <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                            {employee.name.charAt(0)}
+                          </span>
+                        </div>
+                        <div className="ml-3">
+                          <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{employee.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{employee.login}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          employee.role === 'receiver' ? 'bg-orange-100 text-orange-800' :
+                          employee.role === 'train_receiver' ? 'bg-teal-100 text-teal-800' :
+                          employee.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                          employee.role === 'mobile_group' ? 'bg-amber-100 text-amber-800' :
+                          employee.role === 'courier' ? 'bg-cyan-100 text-cyan-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                        {employee.role === 'receiver' ? t('receiver') :
+                          employee.role === 'train_receiver' ? t('roleTrainReceiver') :
+                          employee.role === 'admin' ? t('roleAdmin') :
+                          employee.role === 'direction_head' ? t('roleDirectionHead') :
+                          employee.role === 'chief_head' ? t('roleChiefHead') :
+                          employee.role === 'mobile_group' ? t('roleMobileGroup') :
+                          employee.role === 'courier' ? t('roleCourier') :
+                          t('roleManager')}
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {employee.station}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        onClick={() => handleToggleStatus(employee.id)}
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${employee.status === 'active'
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                          }`}
+                      >
+                        {employee.status === 'active' ? t('activeStatus') : t('inactiveStatus')}
+                      </button>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-450' : 'text-gray-500'}`}>
+                      {new Date(employee.createdAt).toLocaleDateString('ru-RU')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        {(employee.role === 'receiver' || employee.role === 'train_receiver') && (
+                          <button
+                            onClick={() => openQrModal(employee)}
+                            className={isDark ? 'text-amber-400 hover:text-amber-300' : 'text-amber-600 hover:text-amber-900'}
+                            title="QR-логин (скачать)"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => { setResetPwEmployee(employee); setNewPw(''); setResetPwMsg(''); }}
+                          className={isDark ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-900'}
+                          title="Сменить пароль"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEdit(employee)}
+                          className={isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-900'}
+                          title="Редактировать"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEmployee(employee.id)}
+                          className={isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-900'}
+                          title="Удалить"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+
+          {filteredEmployees.length === 0 && (
+            <div className="text-center py-12">
+              <Users className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>{t('noEmployeesFound')}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Список зарегистрированных лиц */}
+      {activeSection === 'clients' && (
+        <div className={`rounded-lg shadow-sm border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className={`border-b ${isDark ? 'bg-gray-750 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <tr>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Клиент
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Логин / Email
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Тип
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Телефон
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Компания
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Баланс
+                  </th>
+                  <th className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Дата регистрации
+                  </th>
+                  <th className={`px-6 py-3 text-right text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                    Действия
+                  </th>
+                </tr>
+              </thead>
+              <tbody className={`divide-y ${isDark ? 'divide-gray-700' : 'divide-gray-200'}`}>
+                {filteredClients.map((client) => (
+                  <tr key={client.id} className={isDark ? 'hover:bg-gray-750' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isDark ? 'bg-blue-900' : 'bg-blue-100'}`}>
+                          <span className={`font-medium ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                            {client.name ? client.name.charAt(0) : 'K'}
+                          </span>
+                        </div>
+                        <div className="ml-3">
+                          <div className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{client.name}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>{client.login}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        client.role === 'individual' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {client.role === 'individual' ? 'Физ. лицо' : 'Юр. лицо'}
+                      </span>
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {client.phone || '-'}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {client.company || '-'}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm font-semibold ${isDark ? 'text-gray-300' : 'text-gray-900'}`}>
+                      {client.role === 'corporate' ? `${client.deposit_balance} ₸` : '-'}
+                    </td>
+                    <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-450' : 'text-gray-500'}`}>
+                      {client.created_at ? new Date(client.created_at).toLocaleDateString('ru-RU') : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => { setResetPwEmployee(client); setNewPw(''); setResetPwMsg(''); }}
+                          className={isDark ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-900'}
+                          title="Сменить пароль"
+                        >
+                          <KeyRound className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEmployee(client.id)}
+                          className={isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-900'}
+                          title="Удалить"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredClients.length === 0 && (
+            <div className="text-center py-12">
+              <Users className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+              <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Клиенты не найдены</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
 
       {/* Модальное окно редактирования сотрудника */}
