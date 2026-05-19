@@ -32,7 +32,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'door' | 'waiting' | 'active' | 'transit' | 'arrival'>('door');
+  const [activeTab, setActiveTab] = useState<'waiting' | 'active' | 'transit' | 'arrival'>('waiting');
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'cost_desc' | 'cost_asc'>('date_desc');
@@ -119,13 +119,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     }
   };
 
-  // 1. «До двери»
-  const doorShipments = applySortAndFilter(s.filter(x => 
-    x.is_door_to_door && 
-    x.from_station === myStation &&
-    ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR', 'PICKUP_ASSIGNED', 'PICKED_UP'].includes(x.shipment_status || x.status) &&
-    matchSearch(x)
-  ));
 
   // 2. «Ожидают привоза»
   const waitingShipments = applySortAndFilter(s.filter(x => 
@@ -287,7 +280,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
           <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('manageShipmentsAtStation')} {myStation}</p>
           <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             {t('totalShipmentsCount').replace('{{count}}', String(
-              activeTab === 'door' ? doorShipments.length :
               activeTab === 'waiting' ? waitingShipments.length :
               activeTab === 'active' ? activeShipmentsList.length :
               activeTab === 'arrival' ? arrivalShipments.length :
@@ -347,7 +339,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       </div>
 
       <div className={`mb-6 flex overflow-x-auto border-b ${isDark ? 'border-gray-800' : 'border-gray-200'}`}>
-        {renderTabButton('door', t('tabDoorToDoor'), doorShipments.length)}
         {renderTabButton('waiting', t('tabWaitingPickup'), waitingShipments.length)}
         {renderTabButton('active', t('tabActive'), activeShipmentsList.length)}
         {renderTabButton('arrival', t('tabArrival'), arrivalShipments.length)}
@@ -361,28 +352,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
           <div className="p-8 text-center text-gray-500">{t('loading')}</div>
         ) : (
           <>
-            {activeTab === 'door' && (
-              doorShipments.length === 0 ? <p className="text-gray-500 p-4">{t('noTasks')}</p> : doorShipments.map(s => (
-                <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="font-bold text-blue-600">{s.shipment_number}</span>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
-                      {(() => {
-                        const st = s.shipment_status || s.status || '';
-                        if (st === 'PICKUP_ASSIGNED') return t('statusCourierDriving');
-                        if (st === 'PICKED_UP') return t('statusCargoPickedUp');
-                        if (st === 'PAYMENT_PENDING') return t('statusPaymentPending');
-                        if (st === 'PAID') return t('statusPaid');
-                        return t('statusWaitingCourier');
-                      })()}
-                    </span>
-                  </div>
-                  <div className="text-sm font-medium mb-1">{s.client_name}</div>
-                  <div className="text-xs text-gray-500 mb-2">{s.pickup_address || t('addressNotSpecified')}</div>
-                  <div className="text-xs text-gray-400 mt-2 flex items-center gap-1"><Clock className="w-3 h-3"/> {formatDate(s.created_at)}</div>
-                </div>
-              ))
-            )}
 
             {activeTab === 'waiting' && (
               waitingShipments.length === 0 ? <p className="text-gray-500 p-4">{t('noWaiting')}</p> : waitingShipments.map(s => (
