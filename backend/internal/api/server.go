@@ -22,6 +22,7 @@ import (
 	"cargo/backend/internal/worker"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	socketio "github.com/googollee/go-socket.io"
 )
@@ -37,17 +38,20 @@ type Server struct {
 	socket   *socketio.Server
 	pool     *pgxpool.Pool
 
-	clients map[string]*rate.Limiter
-	mu      sync.Mutex
+	clients    map[string]*rate.Limiter
+	mu         sync.Mutex
+	cancelFunc context.CancelFunc
 }
 
 func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Pool) (*Server, error) {
 	socket := socketio.NewServer(nil)
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &Server{
-		cfg:      cfg,
-		services: services,
-		socket:   socket,
-		clients:  make(map[string]*rate.Limiter),
+		cfg:        cfg,
+		services:   services,
+		socket:     socket,
+		clients:    make(map[string]*rate.Limiter),
+		cancelFunc: cancel,
 	}
 	if len(pool) > 0 {
 		s.pool = pool[0]
@@ -60,9 +64,18 @@ func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Po
 		delayMins = 1
 	}
 	delay := time.Duration(delayMins) * time.Minute
-	go worker.StartTransitWorker(context.Background(), s.services.Shipments, delay, s.socket, s.services.Shipments.Repo())
+	go worker.StartTransitWorker(ctx, s.services.Shipments, delay, s.socket, s.services.Shipments.Repo())
 
 	return s, nil
+}
+
+func (s *Server) Close() {
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+	if s.socket != nil {
+		s.socket.Close()
+	}
 }
 
 func (s *Server) Router() http.Handler {
@@ -90,6 +103,8 @@ func parseCORSAllowedOrigins(value string) []string {
 
 func (s *Server) routes() chi.Router {
 	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(s.requestLogger)
 	r.Use(s.rateLimiter)
 	r.Use(cors.Handler(cors.Options{
