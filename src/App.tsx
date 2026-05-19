@@ -14,6 +14,7 @@ import { Arrival } from './components/Arrival';
 import { Reports } from './components/Reports';
 import { Settings } from './components/Settings';
 import { CorporateClients } from './components/CorporateClients';
+import { IndividualClients } from './components/IndividualClients';
 import { AuditLog } from './components/AuditLog';
 import { PaymentLog } from './components/PaymentLog';
 import { CorporateDashboard } from './components/CorporateDashboard';
@@ -342,6 +343,8 @@ function AppContent() {
         return <Settings theme={theme} setTheme={setTheme} />;
       case 'corporate':
         return <CorporateClients theme={theme} />;
+      case 'individual-clients':
+        return <IndividualClients theme={theme} />;
       case 'audit':
         return <AuditLog theme={theme} />;
       case 'payments':

@@ -1,4 +1,4 @@
-import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard, Users, Home, Archive } from 'lucide-react';
+import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard, Users, Home, Archive, User } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeftSidebarProps {
@@ -42,6 +42,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
         { id: 'frequent-clients', label: t('sidebarFrequentClients') || 'Быстрые клиенты', icon: Users },
         { id: 'settings', label: t('settings'), icon: SettingsIcon },
         { id: 'corporate', label: t('corporate'), icon: Building2 },
+        { id: 'individual-clients', label: t('individualClients'), icon: User },
       ]
     : [
         ...(userRole === 'admin' ? [
@@ -52,6 +53,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
         ] : []),
         { id: 'settings', label: t('settings'), icon: SettingsIcon },
         { id: 'corporate', label: t('corporate'), icon: Building2 },
+        { id: 'individual-clients', label: t('individualClients'), icon: User },
       ];
 
   if (isLeadership) {

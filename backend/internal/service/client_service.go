@@ -16,6 +16,70 @@ func (s *ClientService) ListCorporateClients(ctx context.Context) ([]model.User,
 	return s.repo.ListCorporateClients(ctx)
 }
 
+func (s *ClientService) ListIndividualClients(ctx context.Context) ([]model.User, error) {
+	return s.repo.ListIndividualClients(ctx)
+}
+
+func (s *ClientService) CreateIndividualClient(ctx context.Context, name, login, password string, phone *string) (model.User, error) {
+	login = normalizeLogin(login)
+	_, err := s.repo.GetUserByEmail(ctx, login)
+	if err == nil {
+		return model.User{}, ErrDuplicateLogin
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return model.User{}, err
+	}
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return model.User{}, err
+	}
+	user := model.User{
+		ID:             uuid.NewString(),
+		Name:           name,
+		Login:          login,
+		PasswordHash:   string(hash),
+		Role:           model.RoleIndividual,
+		ClientSegment:  model.ClientSegmentIndividual,
+		Phone:          phone,
+		IsActive:       true,
+		CreatedAt:      time.Now().UTC(),
+	}
+	return s.repo.CreateUser(ctx, user)
+}
+
+func (s *ClientService) UpdateIndividualClient(ctx context.Context, id, name string, phone *string, is_active *bool) (model.User, error) {
+	user, err := s.repo.GetUserByID(ctx, id)
+	if err != nil {
+		return model.User{}, err
+	}
+	if user.Role != model.RoleIndividual {
+		return model.User{}, errors.New("user is not an individual client")
+	}
+
+	user.Name = name
+	user.Phone = phone
+	if is_active != nil {
+		user.IsActive = *is_active
+	}
+	user.ClientSegment = model.ClientSegmentIndividual
+
+	return s.repo.UpdateUser(ctx, user)
+}
+
+func (s *ClientService) DeleteIndividualClient(ctx context.Context, id string) error {
+	user, err := s.repo.GetUserByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user.Role != model.RoleIndividual {
+		return errors.New("user is not an individual client")
+	}
+
+	user.IsActive = false
+	_, err = s.repo.UpdateUser(ctx, user)
+	return err
+}
+
 func (s *ClientService) TopUp(ctx context.Context, userID string, amount float64) (float64, error) {
 	return s.repo.TopUpDeposit(ctx, userID, amount)
 }

@@ -163,6 +163,15 @@ func (r *Repository) ListCorporateClients(ctx context.Context) ([]model.User, er
 	return collectUsers(rows)
 }
 
+func (r *Repository) ListIndividualClients(ctx context.Context) ([]model.User, error) {
+	rows, err := r.pool.Query(ctx, userSelect+` WHERE role = 'individual' AND is_active = TRUE ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return collectUsers(rows)
+}
+
 func (r *Repository) TopUpDeposit(ctx context.Context, userID string, amount float64) (float64, error) {
 	var balance float64
 	var err error

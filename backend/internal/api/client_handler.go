@@ -10,14 +10,18 @@ import (
 
 func (s *Server) mountClientRoutes(r chi.Router) {
 	r.Get("/clients", s.handleListCorporateClients)
+	r.Get("/clients/individual", s.handleListIndividualClients)
 	r.Get("/clients/frequent", s.handleListFrequentClients)
 	r.Get("/clients/{id}", s.handleGetClient)
 	r.Post("/clients", s.handleCreateCorporateClient)
+	r.Post("/clients/individual", s.handleCreateIndividualClient)
 	r.Post("/clients/frequent", s.handleCreateFrequentClient)
 	r.Put("/clients/frequent/{id}", s.handleUpdateFrequentClient)
 	r.Delete("/clients/frequent/{id}", s.handleDeleteFrequentClient)
 	r.Put("/clients/{id}", s.handleUpdateCorporateClient)
+	r.Put("/clients/individual/{id}", s.handleUpdateIndividualClient)
 	r.Delete("/clients/{id}", s.handleDeleteCorporateClient)
+	r.Delete("/clients/individual/{id}", s.handleDeleteIndividualClient)
 }
 
 func (s *Server) handleListCorporateClients(w http.ResponseWriter, r *http.Request) {
@@ -209,4 +213,81 @@ func (s *Server) handleDeleteCorporateClient(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"message": "Client deleted successfully"})
+}
+
+func (s *Server) handleListIndividualClients(w http.ResponseWriter, r *http.Request) {
+	users, err := s.services.Clients.ListIndividualClients(r.Context())
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, users)
+}
+
+func (s *Server) handleCreateIndividualClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		Name     string  `json:"name"`
+		Login    string  `json:"login"`
+		Password string  `json:"password"`
+		Phone    *string `json:"phone"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	createdUser, err := s.services.Clients.CreateIndividualClient(r.Context(), req.Name, req.Login, req.Password, req.Phone)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, map[string]any{"message": "Individual client created successfully", "clientId": createdUser.ID})
+}
+
+func (s *Server) handleUpdateIndividualClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	var req struct {
+		Name     string  `json:"name"`
+		Phone    *string `json:"phone"`
+		IsActive *bool   `json:"is_active,omitempty"`
+	}
+	if !decodeJSON(w, r, &req) {
+		return
+	}
+	updatedUser, err := s.services.Clients.UpdateIndividualClient(r.Context(), chi.URLParam(r, "id"), req.Name, req.Phone, req.IsActive)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"message": "Individual client updated successfully", "client": updatedUser})
+}
+
+func (s *Server) handleDeleteIndividualClient(w http.ResponseWriter, r *http.Request) {
+	authUser, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(authUser, model.RoleManager, model.RoleAdmin, model.RoleDirectionHead, model.RoleChiefHead); err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	err := s.services.Clients.DeleteIndividualClient(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Individual client deleted successfully"})
 }

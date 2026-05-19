@@ -148,6 +148,18 @@ func (m *memoryRepo) ListCorporateClients(_ context.Context) ([]model.User, erro
 	return users, nil
 }
 
+func (m *memoryRepo) ListIndividualClients(_ context.Context) ([]model.User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var users []model.User
+	for _, user := range m.users {
+		if user.Role == model.RoleIndividual {
+			users = append(users, user)
+		}
+	}
+	return users, nil
+}
+
 func (m *memoryRepo) UpdateFrequentClient(_ context.Context, id, clientName string, companyName, phone, contractNumber, notes *string) (model.FrequentClient, error) {
 	return model.FrequentClient{}, nil
 }
