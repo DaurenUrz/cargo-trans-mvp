@@ -17,3 +17,8 @@ func (s *AuditService) ListByUser(ctx context.Context, userID string) ([]model.A
 func (s *AuditService) ListByShipment(ctx context.Context, shipmentNumber string) ([]model.AuditLog, error) {
 	return s.repo.ListAuditLogsByShipment(ctx, shipmentNumber)
 }
+
+func (s *AuditService) Add(ctx context.Context, log model.AuditLog) error {
+	return s.repo.AddAuditLog(ctx, log)
+}
+

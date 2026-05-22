@@ -24,6 +24,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const [currentStep, setCurrentStep] = useState<Step>('client');
 
   const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
+  const [createdShipmentId, setCreatedShipmentId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [shipmentData, setShipmentData] = useState({
     clientId: user?.id || '',
@@ -194,6 +195,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
 
 
       setCreatedShipmentNumber(shipment.shipment_number || shipmentId.substring(0, 8));
+      setCreatedShipmentId(shipmentId);
       setCurrentStep('documents');
     } catch (error) {
       console.error('Failed to create shipment:', error);
@@ -203,6 +205,16 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   };
 
   const handlePrint = () => {
+    if (createdShipmentId) {
+      const token = localStorage.getItem('token');
+      fetch(withApiBase(`/api/shipments/${createdShipmentId}/log-print`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }).catch(e => console.error('Failed to log print action:', e));
+    }
+
     const qrContainer = document.getElementById('qr-code-container');
     const qrSvg = qrContainer?.innerHTML || '';
 

@@ -21,6 +21,7 @@ interface AuditLog {
 
 // ─── Словари ──────────────────────────────────────────────────────────────
 const ACTION_LABELS: Record<string, string> = {
+  PRINT_LABEL:               'Печать наклейки',
   CREATE_SHIPMENT:           'Оформление посылки',
   SCAN:                      'Сканирование',
   SCAN_LOADED:               'Сканирование (погрузка)',
@@ -95,7 +96,7 @@ const ACTION_GROUPS: { label: string; actions: string[] }[] = [
   { label: 'Выдача',          actions: ['ISSUE', 'ISSUED'] },
   { label: 'Курьер',          actions: ['Courier handover', 'Courier picked up', 'Station intake', 'PICKUP_ASSIGNED'] },
   { label: 'Оплата',          actions: ['PAYMENT_CONFIRMED', 'POST_PAYMENT_CORRECTION'] },
-  { label: 'Прочее',          actions: ['CANCEL', 'HOLD', 'DAMAGE', 'WEIGHT_CONFIRM'] },
+  { label: 'Прочее',          actions: ['CANCEL', 'HOLD', 'DAMAGE', 'WEIGHT_CONFIRM', 'PRINT_LABEL'] },
 ];
 
 function getReadableAction(action: string): string {
@@ -127,6 +128,8 @@ function getActionColor(action: string, isDark: boolean) {
     return isDark ? 'text-yellow-400' : 'text-yellow-600';
   if (action.includes('DAMAGE'))
     return isDark ? 'text-orange-400' : 'text-orange-600';
+  if (action.includes('PRINT'))
+    return isDark ? 'text-teal-400' : 'text-teal-600';
   return isDark ? 'text-gray-300' : 'text-gray-700';
 }
 

@@ -9,6 +9,7 @@ import (
 	"cargo/backend/internal/service"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 func (s *Server) mountShipmentRoutes(r chi.Router) {
@@ -27,6 +28,7 @@ func (s *Server) mountShipmentRoutes(r chi.Router) {
 	r.Post("/shipments/{id}/weight-confirm", s.handleStationWeightConfirm)
 	r.Get("/shipments/{id}/action-context", s.handleActionContext)
 	r.Get("/shipments/by-station/{station}", s.handleShipmentsByStation)
+	r.Post("/shipments/{id}/log-print", s.handleLogPrintShipment)
 }
 
 func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
@@ -524,3 +526,35 @@ func (s *Server) handleActionContext(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, ctx)
 }
+
+func (s *Server) handleLogPrintShipment(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+
+	shipmentID := chi.URLParam(r, "id")
+	shipment, err := s.services.Shipments.Get(r.Context(), shipmentID)
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	now := time.Now()
+	err = s.services.Audit.Add(r.Context(), model.AuditLog{
+		ID:           uuid.NewString(),
+		UserID:       &user.ID,
+		OperatorName: &user.Name,
+		EntityType:   "shipment",
+		EntityID:     shipment.ID,
+		Action:       "PRINT_LABEL",
+		CreatedAt:    now,
+	})
+	if err != nil {
+		handleServiceError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+

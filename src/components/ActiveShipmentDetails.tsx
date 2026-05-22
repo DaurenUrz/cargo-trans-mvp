@@ -1,6 +1,7 @@
 import { X, Package, MapPin, User, Printer, Download } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { QRCodeSVG } from 'qrcode.react';
+import { withApiBase } from '../lib/api-base';
 
 interface ActiveShipmentDetailsProps {
   shipment: {
@@ -43,6 +44,14 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
   };
 
   const handlePrint = () => {
+    const token = localStorage.getItem('token');
+    fetch(withApiBase(`/api/shipments/${shipment.id}/log-print`), {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    }).catch(e => console.error('Failed to log print action:', e));
+
     const qrContainer = document.getElementById('qr-code-container');
     const qrSvg = qrContainer?.innerHTML || '';
     const printWindow = window.open('', '_blank');
