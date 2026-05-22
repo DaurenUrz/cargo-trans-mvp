@@ -1,4 +1,4 @@
-import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard, Users, Home, Archive, User } from 'lucide-react';
+import { Package, List, Truck, MapPin, FileText, Building2, Settings as SettingsIcon, Activity, CreditCard, Home, Archive, User } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeftSidebarProps {
@@ -41,7 +41,7 @@ export function LeftSidebar({ currentPage, onNavigate, theme, userRole }: LeftSi
         { id: 'archive', label: 'Архив', icon: Archive },
         { id: 'settings', label: t('settings'), icon: SettingsIcon },
         { id: 'corporate', label: t('corporate'), icon: Building2 },
-        { id: 'individual-clients', label: t('individualClients'), icon: User },
+        { id: 'reports', label: t('reports'), icon: FileText },
       ]
     : [
         ...(userRole === 'admin' ? [

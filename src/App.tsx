@@ -48,7 +48,7 @@ function AppContent() {
 
   const [currentPage, setCurrentPage] = useState(() => {
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'settings', 'corporate', 'individual-clients', 'archive'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'reports', 'payments', 'audit', 'settings', 'corporate', 'archive'],
       admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'individual-clients', 'audit', 'payments', 'archive'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
@@ -85,7 +85,7 @@ function AppContent() {
   useEffect(() => {
     if (!user?.role) return;
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'settings', 'corporate', 'individual-clients', 'archive'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'reports', 'payments', 'audit', 'settings', 'corporate', 'archive'],
       admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'individual-clients', 'audit', 'payments', 'archive'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
