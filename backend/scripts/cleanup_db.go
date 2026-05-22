@@ -27,16 +27,19 @@ func main() {
 		desc string
 		sql  string
 	}{
+		{"Удаление wagon_shipments", "DELETE FROM wagon_shipments"},
+		{"Удаление wagons", "DELETE FROM wagons"},
 		{"Удаление scan_events", "DELETE FROM scan_events"},
 		{"Удаление transit_events", "DELETE FROM transit_events"},
 		{"Удаление arrival_events", "DELETE FROM arrival_events"},
-		{"Удаление shipment_histories", "DELETE FROM shipment_histories"},
+		{"Удаление shipment_history", "DELETE FROM shipment_history"},
 		{"Удаление payments", "DELETE FROM payments"},
 		{"Удаление notifications", "DELETE FROM notifications"},
 		{"Удаление qr_codes", "DELETE FROM qr_codes"},
-		{"Удаление audit_logs", "DELETE FROM audit_logs"},
+		{"Удаление audit_log", "DELETE FROM audit_log"},
+		{"Удаление frequent_clients", "DELETE FROM frequent_clients"},
 		{"Удаление shipments", "DELETE FROM shipments"},
-		{"Удаление клиентов (individual + corporate)", "DELETE FROM users WHERE role IN ('individual', 'corporate')"},
+		{"Удаление клиентов (individual + corporate)", "DELETE FROM users WHERE role IN ('individual', 'corporate') OR client_segment IN ('individual', 'legal_entity')"},
 	}
 
 	for _, q := range queries {

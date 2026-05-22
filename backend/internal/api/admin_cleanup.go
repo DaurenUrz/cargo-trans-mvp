@@ -30,6 +30,8 @@ func (s *Server) handleAdminCleanup(w http.ResponseWriter, r *http.Request) {
 		desc string
 		sql  string
 	}{
+		{"wagon_shipments", "DELETE FROM wagon_shipments"},
+		{"wagons", "DELETE FROM wagons"},
 		{"scan_events", "DELETE FROM scan_events"},
 		{"transit_events", "DELETE FROM transit_events"},
 		{"arrival_events", "DELETE FROM arrival_events"},
@@ -38,8 +40,9 @@ func (s *Server) handleAdminCleanup(w http.ResponseWriter, r *http.Request) {
 		{"notifications", "DELETE FROM notifications"},
 		{"qr_codes", "DELETE FROM qr_codes"},
 		{"audit_log", "DELETE FROM audit_log"},
+		{"frequent_clients", "DELETE FROM frequent_clients"},
 		{"shipments", "DELETE FROM shipments"},
-		{"clients (individual+corporate)", "DELETE FROM users WHERE role IN ('individual', 'corporate')"},
+		{"clients (individual+corporate)", "DELETE FROM users WHERE role IN ('individual', 'corporate') OR client_segment IN ('individual', 'legal_entity')"},
 	}
 
 	for _, q := range queries {
