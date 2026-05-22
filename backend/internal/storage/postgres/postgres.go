@@ -710,7 +710,7 @@ func (r *Repository) listAuditLogsWhere(ctx context.Context, where string, args 
 func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardReport, error) {
 	var report model.DashboardReport
 	start := startOfMonth()
-	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) , pickup_code, issue_code FROM shipments WHERE created_at >= $1`, start).Scan(&report.MonthlyShipments); err != nil {
+	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM shipments WHERE created_at >= $1`, start).Scan(&report.MonthlyShipments); err != nil {
 		return report, err
 	}
 	if err := r.pool.QueryRow(ctx, `SELECT COUNT(*) FROM shipments WHERE created_at >= $1 AND shipment_status IN ('ISSUED','CLOSED')`, start).Scan(&report.CompletedShipments); err != nil {

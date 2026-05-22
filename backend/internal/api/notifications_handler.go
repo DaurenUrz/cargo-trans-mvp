@@ -8,16 +8,20 @@ import (
 )
 
 func (s *Server) mountNotificationRoutes(r chi.Router) {
-	r.Get("/notifications", s.handleListNotifications)
-	r.Patch("/notifications/{id}/read", s.handleMarkNotificationRead)
-	r.Delete("/notifications/{id}", s.handleDeleteNotification)
+	r.With(s.requireAuth).Get("/notifications", s.handleListNotifications)
+	r.With(s.requireAuth).Patch("/notifications/{id}/read", s.handleMarkNotificationRead)
+	r.With(s.requireAuth).Delete("/notifications/{id}", s.handleDeleteNotification)
 }
 
 func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request) {
-	userID := r.URL.Query().Get("userId")
-	if userID == "" {
-		writeError(w, http.StatusBadRequest, "Missing userId")
+	user, ok := s.mustAuth(w, r)
+	if !ok {
 		return
+	}
+	// Only allow users to list their own notifications
+	userID := r.URL.Query().Get("userId")
+	if userID == "" || userID != user.ID {
+		userID = user.ID
 	}
 	items, err := s.services.Notifications.List(r.Context(), userID)
 	if err != nil {
@@ -28,6 +32,9 @@ func (s *Server) handleListNotifications(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid notification id")
@@ -41,6 +48,9 @@ func (s *Server) handleMarkNotificationRead(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleDeleteNotification(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid notification id")
@@ -52,3 +62,4 @@ func (s *Server) handleDeleteNotification(w http.ResponseWriter, r *http.Request
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+

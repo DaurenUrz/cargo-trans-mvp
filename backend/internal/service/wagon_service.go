@@ -107,7 +107,10 @@ func (s *WagonService) ScanShipmentInWagon(ctx context.Context, wagonID, shipmen
 	if allDone {
 		wagon.Status = model.WagonLoaded
 		wagon.UpdatedAt = time.Now().UTC()
-		wagon, _ = s.repo.UpdateWagon(ctx, wagon)
+		wagon, err = s.repo.UpdateWagon(ctx, wagon)
+		if err != nil {
+			return model.Wagon{}, nil, false, err
+		}
 	}
 	return wagon, checklist, allDone, nil
 }

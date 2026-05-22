@@ -66,6 +66,38 @@ func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Po
 	delay := time.Duration(delayMins) * time.Minute
 	go worker.StartTransitWorker(ctx, s.services.Shipments, delay, s.socket, s.services.Shipments.Repo())
 
+	// Cleanup stale rate-limiter entries every 10 minutes to prevent memory leak
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.mu.Lock()
+				for ip := range s.clients {
+					delete(s.clients, ip)
+				}
+				s.mu.Unlock()
+			}
+		}
+	}()
+
+	// Cleanup expired tokens from blacklist every 30 minutes
+	go func() {
+		ticker := time.NewTicker(30 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				s.services.Auth.CleanupBlacklist(25 * time.Hour)
+			}
+		}
+	}()
+
 	return s, nil
 }
 
@@ -134,10 +166,10 @@ func (s *Server) routes() chi.Router {
 		s.mountReportRoutes(api)
 		s.mountWagonRoutes(api)
 		// WhatsApp debug endpoints (admin only in production)
-		api.Get("/whatsapp/status", s.handleWhatsAppStatus)
-		api.Post("/whatsapp/test", s.handleWhatsAppTest)
+		api.With(s.requireAuth).Get("/whatsapp/status", s.handleWhatsAppStatus)
+		api.With(s.requireAuth).Post("/whatsapp/test", s.handleWhatsAppTest)
 		// Admin: database cleanup
-		api.Post("/admin/cleanup", s.handleAdminCleanup)
+		api.With(s.requireAuth).Post("/admin/cleanup", s.handleAdminCleanup)
 	})
 	return r
 }
@@ -317,6 +349,7 @@ func (w *statusWriter) WriteHeader(status int) {
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB limit
 	defer r.Body.Close()
 	if err := json.NewDecoder(r.Body).Decode(dst); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid JSON payload")

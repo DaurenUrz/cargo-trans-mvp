@@ -160,8 +160,12 @@ func TestPilotLifecycleFlow(t *testing.T) {
 		t.Fatalf("expected READY_FOR_ISSUE, got %s", shipment.ShipmentStatus)
 	}
 
+	issueCode := ""
+	if shipment.IssueCode != nil {
+		issueCode = *shipment.IssueCode
+	}
 	issueResp := performJSON(t, server.Router(), "POST", "/api/shipments/"+shipment.ID+"/issue", map[string]any{
-		"code": "0000",
+		"code": issueCode,
 		"receiver_name": receiverName,
 		"receiver_phone": receiverPhone,
 	}, issueToken)

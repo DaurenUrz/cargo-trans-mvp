@@ -131,7 +131,14 @@ func (s *AuthService) ResetPassword(ctx context.Context, login, code, newPasswor
 		s.otpStore.Delete(login)
 		return errors.New("код устарел")
 	}
+	// Brute-force protection: max 3 attempts
+	otp.Attempts++
+	if otp.Attempts > 3 {
+		s.otpStore.Delete(login)
+		return errors.New("превышено количество попыток, запросите новый код")
+	}
 	if otp.Code != code {
+		s.otpStore.Store(login, otp)
 		return errors.New("неверный код")
 	}
 
@@ -259,4 +266,15 @@ func (s *AuthService) Logout(token string) {
 	if token != "" {
 		s.blacklist.Store(token, time.Now().UTC())
 	}
+}
+
+// CleanupBlacklist removes tokens from the blacklist that were added more than maxAge ago.
+func (s *AuthService) CleanupBlacklist(maxAge time.Duration) {
+	cutoff := time.Now().UTC().Add(-maxAge)
+	s.blacklist.Range(func(key, value any) bool {
+		if addedAt, ok := value.(time.Time); ok && addedAt.Before(cutoff) {
+			s.blacklist.Delete(key)
+		}
+		return true
+	})
 }

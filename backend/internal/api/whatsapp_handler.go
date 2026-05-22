@@ -3,10 +3,19 @@ package api
 import (
 	"net/http"
 
+	"cargo/backend/internal/model"
 	"cargo/backend/internal/whatsapp"
 )
 
 func (s *Server) handleWhatsAppStatus(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	connected := whatsapp.IsConnected()
 	status := "disconnected"
 	if connected {
@@ -19,6 +28,14 @@ func (s *Server) handleWhatsAppStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleWhatsAppTest(w http.ResponseWriter, r *http.Request) {
+	user, ok := s.mustAuth(w, r)
+	if !ok {
+		return
+	}
+	if err := s.requireRole(user, model.RoleAdmin); err != nil {
+		handleServiceError(w, err)
+		return
+	}
 	var req struct {
 		Phone   string `json:"phone"`
 		Message string `json:"message"`
@@ -44,3 +61,4 @@ func (s *Server) handleWhatsAppTest(w http.ResponseWriter, r *http.Request) {
 		"message": req.Message,
 	})
 }
+

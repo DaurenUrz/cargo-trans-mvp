@@ -2,7 +2,7 @@ import { withApiBase } from "../lib/api-base";
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { CreditCard, Calendar, CheckCircle2 } from 'lucide-react';
+import { Calendar, CheckCircle2, Search, Filter } from 'lucide-react';
 
 interface Payment {
   id: string;
@@ -24,7 +24,16 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
       selectDate: 'Выберите дату',
       showOnlySelectedDay: 'Показать только за выбранный день',
       allDays: 'Все дни',
-      totalAllDays: 'Общий итог (все дни)'
+      totalAllDays: 'Общий итог (все дни)',
+      // New filters
+      searchPayments: 'Поиск по номеру...',
+      paymentMethodFilter: 'Способ оплаты',
+      allMethods: 'Все способы оплаты',
+      period: 'Период',
+      selectedDayOnly: 'Выбранный день',
+      allTime: 'Все время',
+      filtersTitle: 'Фильтры',
+      resetFilters: 'Сбросить фильтры'
     },
     kk: {
       dailyTotal: 'Күнделікті қорытынды',
@@ -33,7 +42,16 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
       selectDate: 'Күнді таңдаңыз',
       showOnlySelectedDay: 'Тек таңдалған күн үшін көрсету',
       allDays: 'Барлық күндер',
-      totalAllDays: 'Жалпы қорытынды (барлық күндер)'
+      totalAllDays: 'Жалпы қорытынды (барлық күндер)',
+      // New filters
+      searchPayments: 'Нөмір бойынша іздеу...',
+      paymentMethodFilter: 'Төлем әдісі',
+      allMethods: 'Барлық төлем әдістері',
+      period: 'Кезең',
+      selectedDayOnly: 'Таңдалған күн',
+      allTime: 'Барлық уақыт',
+      filtersTitle: 'Сүзгілер',
+      resetFilters: 'Сүзгілерді тастау'
     },
     en: {
       dailyTotal: 'Daily Total',
@@ -42,7 +60,16 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
       selectDate: 'Select Date',
       showOnlySelectedDay: 'Show only for selected day',
       allDays: 'All days',
-      totalAllDays: 'Total (all days)'
+      totalAllDays: 'Total (all days)',
+      // New filters
+      searchPayments: 'Search by number...',
+      paymentMethodFilter: 'Payment Method',
+      allMethods: 'All payment methods',
+      period: 'Period',
+      selectedDayOnly: 'Selected Day',
+      allTime: 'All Time',
+      filtersTitle: 'Filters',
+      resetFilters: 'Reset filters'
     }
   };
   return dict[lang] || dict['ru'];
@@ -64,6 +91,8 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
 
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString(new Date()));
   const [showOnlySelectedDay, setShowOnlySelectedDay] = useState<boolean>(true);
+  const [search, setSearch] = useState('');
+  const [filterMethod, setFilterMethod] = useState('');
 
   const loc = getTranslation(language);
 
@@ -103,31 +132,41 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
     }
   };
 
-  const isConfirmed = (p: Payment) => (p.status || '').toLowerCase() === 'confirmed';
+  // Payments to show in the table (filtered by date, search, and payment method)
+  const displayedPayments = payments.filter(p => {
+    // 1. Filter by date if showOnlySelectedDay is enabled
+    if (showOnlySelectedDay && !isSameDay(p.created_at, selectedDate)) {
+      return false;
+    }
 
-  // Calculations
-  const confirmedPayments = payments.filter(isConfirmed);
-  
-  // All time total
-  const totalSum = confirmedPayments.reduce((acc, p) => acc + p.amount, 0);
+    // 2. Filter by search query (shipment number)
+    if (search) {
+      const q = search.toLowerCase();
+      const num = (p.shipment_number || '').toLowerCase();
+      if (!num.includes(q)) {
+        return false;
+      }
+    }
 
-  // Daily statistics (confirmed only)
-  const dailyPayments = confirmedPayments.filter(p => isSameDay(p.created_at, selectedDate));
-  const dailyTotal = dailyPayments.reduce((acc, p) => acc + p.amount, 0);
-  const dailyCash = dailyPayments
-    .filter(p => (p.payment_method || '').toLowerCase() === 'cash')
-    .reduce((acc, p) => acc + p.amount, 0);
-  const dailyNonCash = dailyPayments
-    .filter(p => {
+    // 3. Filter by payment method
+    if (filterMethod) {
       const method = (p.payment_method || '').toLowerCase();
-      return method === 'card' || method === 'deposit';
-    })
-    .reduce((acc, p) => acc + p.amount, 0);
+      if (filterMethod === 'cash') {
+        if (method !== 'cash') return false;
+      } else if (filterMethod === 'card') {
+        if (method !== 'card') return false;
+      } else if (filterMethod === 'deposit') {
+        if (method !== 'deposit') return false;
+      }
+    }
 
-  // Payments to show in the table (filtered if requested)
-  const displayedPayments = showOnlySelectedDay
-    ? payments.filter(p => isSameDay(p.created_at, selectedDate))
-    : payments;
+    return true;
+  });
+
+  const card = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+  const inputCls = isDark
+    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+    : 'bg-white border-gray-300 text-gray-900 focus:border-blue-500';
 
   return (
     <div className="space-y-6">
@@ -138,107 +177,56 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
         </div>
       </div>
 
-      {/* Date Filter Control Panel */}
-      <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-        isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
-      }`}>
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 w-full sm:w-auto">
-          <div className="flex flex-col">
-            <span className={`text-xs font-semibold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {loc.selectDate}
-            </span>
-            <div className="relative">
-              <input
-                id="payment-log-date-picker"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className={`w-full sm:w-48 px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-colors ${
-                  isDark 
-                    ? 'bg-gray-700 border-gray-600 text-white color-scheme-dark' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2 mt-2 sm:mt-5">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                id="payment-log-filter-toggle"
-                type="checkbox"
-                checked={showOnlySelectedDay}
-                onChange={(e) => setShowOnlySelectedDay(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className={`w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all ${
-                isDark ? 'peer-checked:bg-blue-600 bg-gray-600 border-gray-500' : 'peer-checked:bg-blue-600'
-              }`}></div>
-              <span className={`ml-2 text-sm font-medium select-none ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                {loc.showOnlySelectedDay}
-              </span>
-            </label>
-          </div>
+      {/* Filters Card (matches ShipmentArchive style) */}
+      <div className={`rounded-xl border p-4 mb-6 ${card}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+          <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{loc.filtersTitle}</span>
         </div>
-      </div>
-
-      {/* Dashboard Analytics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Daily Total Card */}
-        <div className={`p-5 rounded-xl border flex items-center gap-4 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
-          <div className={`p-3 rounded-lg ${isDark ? 'bg-blue-900/50 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
-            <CreditCard className="w-6 h-6" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="relative">
+            <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
+            <input
+              type="text"
+              placeholder={loc.searchPayments}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className={`w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+            />
           </div>
-          <div>
-            <p className={`text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loc.dailyTotal}</p>
-            <p className={`text-xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {dailyTotal.toLocaleString()} ₸
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{selectedDate}</p>
-          </div>
+          <select
+            value={filterMethod}
+            onChange={e => setFilterMethod(e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+          >
+            <option value="">{loc.allMethods}</option>
+            <option value="cash">{t('cash')}</option>
+            <option value="card">{t('card')}</option>
+            <option value="deposit">{t('deposit')}</option>
+          </select>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+          />
+          <select
+            value={showOnlySelectedDay ? 'day' : 'all'}
+            onChange={e => setShowOnlySelectedDay(e.target.value === 'day')}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
+          >
+            <option value="day">{loc.selectedDayOnly}</option>
+            <option value="all">{loc.allTime}</option>
+          </select>
         </div>
-
-        {/* Daily Cash Card */}
-        <div className={`p-5 rounded-xl border flex items-center gap-4 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
-          <div className={`p-3 rounded-lg flex items-center justify-center w-12 h-12 text-lg font-bold ${isDark ? 'bg-green-900/50 text-green-400' : 'bg-green-100 text-green-600'}`}>
-            ₸
-          </div>
-          <div>
-            <p className={`text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loc.cashTotal}</p>
-            <p className={`text-xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {dailyCash.toLocaleString()} ₸
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{selectedDate}</p>
-          </div>
-        </div>
-
-        {/* Daily Non-Cash Card */}
-        <div className={`p-5 rounded-xl border flex items-center gap-4 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
-          <div className={`p-3 rounded-lg ${isDark ? 'bg-purple-900/50 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
-            <CreditCard className="w-6 h-6" />
-          </div>
-          <div>
-            <p className={`text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loc.nonCashTotal}</p>
-            <p className={`text-xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {dailyNonCash.toLocaleString()} ₸
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{selectedDate}</p>
-          </div>
-        </div>
-
-        {/* All Time Total Card */}
-        <div className={`p-5 rounded-xl border flex items-center gap-4 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'}`}>
-          <div className={`p-3 rounded-lg flex items-center justify-center w-12 h-12 text-lg font-bold ${isDark ? 'bg-amber-900/50 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
-            Σ
-          </div>
-          <div>
-            <p className={`text-xs font-medium uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{loc.totalAllDays}</p>
-            <p className={`text-xl font-bold mt-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              {totalSum.toLocaleString()} ₸
-            </p>
-            <p className="text-[10px] text-gray-500 mt-0.5">{loc.allDays}</p>
-          </div>
-        </div>
+        {(search || filterMethod || !showOnlySelectedDay) && (
+          <button
+            onClick={() => { setSearch(''); setFilterMethod(''); setShowOnlySelectedDay(true); }}
+            className="mt-3 text-sm text-blue-500 hover:text-blue-700 transition-colors"
+          >
+            {loc.resetFilters}
+          </button>
+        )}
       </div>
 
       {/* Main Table */}

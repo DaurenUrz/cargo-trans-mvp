@@ -139,7 +139,7 @@ func (s *Server) handleIssueShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	if current.IssueCode != nil && *current.IssueCode != req.Code && req.Code != "0000" {
+	if current.IssueCode != nil && *current.IssueCode != req.Code {
 		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}

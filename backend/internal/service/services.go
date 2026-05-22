@@ -60,6 +60,7 @@ func NewServices(repo Repository, jwtSecret string) Services {
 type otpData struct {
 	Code      string
 	ExpiresAt time.Time
+	Attempts  int
 }
 
 type AuthService struct {

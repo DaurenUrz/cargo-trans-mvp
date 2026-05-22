@@ -109,7 +109,11 @@ func (s *Server) handleListEmployees(w http.ResponseWriter, r *http.Request) {
 	}
 	var response []employeeResponse
 	for _, user := range users {
-		response = append(response, employeeResponse{User: user, Status: "active"})
+		status := "active"
+		if !user.IsActive {
+			status = "inactive"
+		}
+		response = append(response, employeeResponse{User: user, Status: status})
 	}
 	writeJSON(w, http.StatusOK, response)
 }

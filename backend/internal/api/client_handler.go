@@ -25,6 +25,9 @@ func (s *Server) mountClientRoutes(r chi.Router) {
 }
 
 func (s *Server) handleListCorporateClients(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	users, err := s.services.Clients.ListCorporateClients(r.Context())
 	if err != nil {
 		handleServiceError(w, err)
@@ -162,6 +165,9 @@ func (s *Server) handleDeleteFrequentClient(w http.ResponseWriter, r *http.Reque
 }
 
 func (s *Server) handleGetClient(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	user, err := s.services.Auth.Me(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
@@ -216,6 +222,9 @@ func (s *Server) handleDeleteCorporateClient(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *Server) handleListIndividualClients(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	users, err := s.services.Clients.ListIndividualClients(r.Context())
 	if err != nil {
 		handleServiceError(w, err)

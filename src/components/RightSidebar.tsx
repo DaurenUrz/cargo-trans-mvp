@@ -10,7 +10,7 @@ interface RightSidebarProps {
 
 export function RightSidebar({ currentPage, theme, onClose }: RightSidebarProps) {
   const isDark = theme === 'dark';
-  const { t, language } = useLanguage();
+  const { language } = useLanguage();
 
   const getInstructions = () => {
     switch (currentPage) {
@@ -18,46 +18,37 @@ export function RightSidebar({ currentPage, theme, onClose }: RightSidebarProps)
         return {
           title: language === 'ru' ? 'Панель управления' : language === 'en' ? 'Dashboard' : 'Басқару панелі',
           description: language === 'ru'
-            ? 'Аналитика и общая статистика по отправкам, финансам и вагонам на станции.'
+            ? 'Обзор всех активных отправок на вашей станции. Здесь отображается сводная информация по текущим грузам.'
             : language === 'en'
-            ? 'Analytics and general statistics on shipments, finances, and wagons at the station.'
-            : 'Станциядағы жөнелтілімдер, қаржы және вагондар бойынша талдау және жалпы статистика.',
+            ? 'Overview of all active shipments at your station. Displays summary information on current cargo.'
+            : 'Станциядағы барлық белсенді жөнелтілімдерге шолу. Ағымдағы жүктер бойынша жиынтық ақпарат көрсетіледі.',
           steps: [
             {
               number: 1,
-              title: language === 'ru' ? 'Показатели' : language === 'en' ? 'Key Metrics' : 'Негізгі көрсеткіштер',
+              title: language === 'ru' ? 'Активные отправки' : language === 'en' ? 'Active Shipments' : 'Белсенді жөнелтілімдер',
               description: language === 'ru'
-                ? 'Просмотр количества активных договоров и объема перевозок за месяц.'
+                ? 'Просмотр списка всех активных отправок с их текущими статусами.'
                 : language === 'en'
-                ? 'View active contracts and monthly shipment counts.'
-                : 'Белсенді келісімшарттар санын және айлық тасымал көлемін қарау.'
+                ? 'View the list of all active shipments with their current statuses.'
+                : 'Барлық белсенді жөнелтілімдердің ағымдағы мәртебелерімен тізімін қарау.'
             },
             {
               number: 2,
-              title: language === 'ru' ? 'Анализ маршрутов' : language === 'en' ? 'Route Analysis' : 'Бағыттарды талдау',
+              title: language === 'ru' ? 'Статусы грузов' : language === 'en' ? 'Cargo Statuses' : 'Жүк мәртебелері',
               description: language === 'ru'
-                ? 'Анализ самых популярных направлений и доходности по ним.'
+                ? 'Каждая отправка отображается с актуальным статусом: создана, в пути, прибыла и т.д.'
                 : language === 'en'
-                ? 'Analyze most popular directions and their profitability.'
-                : 'Ең танымал бағыттар мен олардың кірістілігін талдау.'
+                ? 'Each shipment is displayed with its current status: created, in transit, arrived, etc.'
+                : 'Әр жөнелтілім ағымдағы мәртебесімен көрсетіледі: жасалған, жолда, келді, т.б.'
             },
             {
               number: 3,
-              title: language === 'ru' ? 'Контроль вагонов' : language === 'en' ? 'Wagon Control' : 'Вагондарды бақылау',
+              title: language === 'ru' ? 'Подробности отправки' : language === 'en' ? 'Shipment Details' : 'Жөнелтілім мәліметтері',
               description: language === 'ru'
-                ? 'Отслеживание статуса и занятости вагонов на станциях.'
+                ? 'Нажмите на отправку, чтобы увидеть подробную информацию: маршрут, вес, клиент, стоимость.'
                 : language === 'en'
-                ? 'Track wagon statuses and utilization at stations.'
-                : 'Станциялардағы вагондардың мәртебесі мен тиелуін бақылау.'
-            },
-            {
-              number: 4,
-              title: language === 'ru' ? 'Финансовые метрики' : language === 'en' ? 'Financial Metrics' : 'Қаржылық көрсеткіштер',
-              description: language === 'ru'
-                ? 'Сверка доходов и расходов за текущий период.'
-                : language === 'en'
-                ? 'Reconcile revenues and expenses of the current period.'
-                : 'Ағымдағы кезеңдегі кірістер мен шығыстарды салыстыру.'
+                ? 'Click on a shipment to see detailed info: route, weight, client, cost.'
+                : 'Толық ақпаратты көру үшін жөнелтілімді басыңыз: бағыт, салмақ, клиент, құн.'
             }
           ]
         };

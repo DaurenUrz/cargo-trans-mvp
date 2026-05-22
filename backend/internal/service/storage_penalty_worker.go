@@ -32,13 +32,18 @@ func StoragePenaltyWorker(ctx context.Context, repo Repository) {
 }
 
 func checkStoragePenalties(ctx context.Context, repo Repository) {
-	// Find all shipments that are ARRIVED or READY_FOR_ISSUE and have been waiting > 3 days
-	filter := model.ShipmentFilter{Type: ""}
-	shipments, err := repo.ListShipments(ctx, filter)
+	// Only fetch shipments that are waiting for pickup — not ALL shipments
+	arrivedShipments, err := repo.ListShipmentsByStatus(ctx, model.ShipmentArrived, time.Time{})
 	if err != nil {
-		log.Printf("[StoragePenaltyWorker] Error fetching shipments: %v", err)
+		log.Printf("[StoragePenaltyWorker] Error fetching arrived shipments: %v", err)
 		return
 	}
+	readyShipments, err := repo.ListShipmentsByStatus(ctx, model.ShipmentReadyForIssue, time.Time{})
+	if err != nil {
+		log.Printf("[StoragePenaltyWorker] Error fetching ready-for-issue shipments: %v", err)
+		return
+	}
+	shipments := append(arrivedShipments, readyShipments...)
 
 	now := time.Now().UTC()
 	penaltyThreshold := 3 * 24 * time.Hour // 3 days
@@ -46,11 +51,6 @@ func checkStoragePenalties(ctx context.Context, repo Repository) {
 
 	notified := 0
 	for _, s := range shipments {
-		// Only check shipments waiting for pickup at station
-		if s.ShipmentStatus != model.ShipmentArrived && s.ShipmentStatus != model.ShipmentReadyForIssue {
-			continue
-		}
-
 		// Check how long it's been sitting
 		sinceUpdate := now.Sub(s.LastUpdatedAt)
 		if sinceUpdate < penaltyThreshold {

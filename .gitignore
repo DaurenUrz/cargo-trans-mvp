@@ -7,5 +7,7 @@ dist
 .idea
 .vscode
 backend/server
+backend/main
 *.log
 *.pem
+admin_login.json

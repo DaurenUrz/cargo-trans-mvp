@@ -100,7 +100,7 @@ func (s *Server) handleCourierPickupConfirm(w http.ResponseWriter, r *http.Reque
 		handleServiceError(w, err)
 		return
 	}
-	if shipToVerify.PickupCode != nil && *shipToVerify.PickupCode != req.Code && req.Code != "0000" { // 0000 as master code for testing
+	if shipToVerify.PickupCode != nil && *shipToVerify.PickupCode != req.Code {
 		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}
@@ -180,7 +180,7 @@ func (s *Server) handleCourierDeliveryConfirm(w http.ResponseWriter, r *http.Req
 		handleServiceError(w, err)
 		return
 	}
-	if shipToVerify.IssueCode != nil && *shipToVerify.IssueCode != req.Code && req.Code != "0000" {
+	if shipToVerify.IssueCode != nil && *shipToVerify.IssueCode != req.Code {
 		writeError(w, http.StatusForbidden, "Неверный PIN-код")
 		return
 	}

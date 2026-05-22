@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
+	"math/big"
 	"regexp"
 	"strconv"
 	"strings"
@@ -11,7 +13,6 @@ import (
 	"cargo/backend/internal/model"
 
 	"github.com/google/uuid"
-	"math/rand"
 	"cargo/backend/internal/whatsapp"
 )
 
@@ -98,9 +99,9 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	if len(route) > 1 {
 		nextStation = &route[1]
 	}
-	number := "SH-" + fmt.Sprintf("%06d", now.UnixNano()%1000000)
-	pickupCode := fmt.Sprintf("%04d", rand.Intn(10000))
-	issueCode := fmt.Sprintf("%04d", rand.Intn(10000))
+	number := "SH-" + fmt.Sprintf("%06d", cryptoRandInt(1000000))
+	pickupCode := fmt.Sprintf("%04d", cryptoRandInt(10000))
+	issueCode := fmt.Sprintf("%04d", cryptoRandInt(10000))
 	shipment := model.Shipment{
 		PickupCode: &pickupCode,
 		IssueCode: &issueCode,
@@ -450,7 +451,7 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 
 	// Проверка PIN-кода (если передан)
 	if req.VerificationPin != "" {
-		if shipment.IssueCode != nil && *shipment.IssueCode != req.VerificationPin && req.VerificationPin != "0000" {
+		if shipment.IssueCode != nil && *shipment.IssueCode != req.VerificationPin {
 			return model.Shipment{}, ErrInvalidPinCode
 		}
 	}
@@ -1271,4 +1272,14 @@ func (s *ShipmentService) ClearPayment(ctx context.Context, id string) (model.Sh
 	shipment.PaymentRequired = false
 	shipment.ExtraCharge = 0
 	return s.repo.UpdateShipment(ctx, shipment)
+}
+
+// cryptoRandInt returns a cryptographically secure random int in [0, max).
+func cryptoRandInt(max int64) int64 {
+	n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(max))
+	if err != nil {
+		// Fallback: this should never happen with crypto/rand
+		return time.Now().UnixNano() % max
+	}
+	return n.Int64()
 }

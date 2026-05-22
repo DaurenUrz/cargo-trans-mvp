@@ -65,6 +65,9 @@ func (s *Server) handleScanShipment(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleScanEvents(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	items, err := s.services.Tracking.ListScanEvents(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)
@@ -74,6 +77,9 @@ func (s *Server) handleScanEvents(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTrackingHistory(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	items, err := s.services.Tracking.TrackingHistory(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		handleServiceError(w, err)

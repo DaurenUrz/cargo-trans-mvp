@@ -22,6 +22,9 @@ func (s *Server) mountReferenceRoutes(r chi.Router) {
 }
 
 func (s *Server) handleListRoles(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	roles, err := s.services.Reference.ListRoles(r.Context())
 	if err != nil {
 		handleServiceError(w, err)
@@ -31,6 +34,9 @@ func (s *Server) handleListRoles(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleListStations(w http.ResponseWriter, r *http.Request) {
+	if _, ok := s.mustAuth(w, r); !ok {
+		return
+	}
 	stations, err := s.services.Reference.ListStations(r.Context())
 	if err != nil {
 		handleServiceError(w, err)

@@ -1,9 +1,0 @@
-2026/04/20 00:26:19 server listening on :8080
-2026/04/20 00:32:41 http GET /api/clients status=200 duration=5.534375ms
-2026/04/20 00:32:41 http GET /api/notifications status=200 duration=11.39175ms
-2026/04/20 00:32:55 http POST /api/auth/login status=200 duration=73.003459ms
-2026/04/20 00:32:56 http GET /api/notifications status=200 duration=1.096958ms
-2026/04/20 00:41:13 http POST /api/auth/login status=200 duration=82.288709ms
-2026/04/20 00:41:57 http POST /api/auth/login status=200 duration=81.132666ms
-2026/04/20 00:45:15 http POST /api/auth/login status=200 duration=80.592708ms
-2026/04/20 00:45:30 http POST /api/auth/login status=200 duration=78.4645ms

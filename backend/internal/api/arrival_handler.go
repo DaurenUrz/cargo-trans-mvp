@@ -148,5 +148,4 @@ func (s *Server) handleNotifyArrival(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"message": "Уведомление отправлено на " + phone,
 	})
-	_ = time.Now()
 }
