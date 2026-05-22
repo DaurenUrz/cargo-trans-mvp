@@ -99,7 +99,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       alert(t('errorSameStation') || 'Пункты отправления и назначения не могут совпадать.');
       return;
     }
-    if (parseFloat(shipmentData.weight || '0') > 50) {
+    if (shipmentData.isDoorToDoor && parseFloat(shipmentData.weight || '0') > 50) {
       alert('Максимальный вес посылки — 50 кг');
       return;
     }

@@ -26,7 +26,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
   }), [data.fromStation, data.toStation, data.weight, data.isFragile, data.isOversized, data.isDoorToDoor, data.clientType]);
 
   const weightNum = parseFloat(data.weight || '0');
-  const isOverweight = weightNum > 50;
+  const isOverweight = data.isDoorToDoor && weightNum > 50;
 
   const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
     isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'
@@ -81,7 +81,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
               className={`${input} ${isOverweight ? 'border-red-500 focus:ring-red-500' : ''}`}
               placeholder="0"
               min="0"
-              max="50"
+              max={data.isDoorToDoor ? "50" : undefined}
               step="0.1"
             />
             {isOverweight && (

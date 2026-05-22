@@ -1230,9 +1230,11 @@ func validateCreateShipment(req CreateShipmentRequest) error {
 		}
 	}
 
-	// Максимальный вес — 50 кг
-	if w := parseWeightKg(req.Weight); w > 50 {
-		return fmt.Errorf("%w: максимальный вес посылки — 50 кг", ErrValidation)
+	// Максимальный вес — 50 кг только для door-to-door
+	if req.IsDoorToDoor {
+		if w := parseWeightKg(req.Weight); w > 50 {
+			return fmt.Errorf("%w: максимальный вес посылки — 50 кг", ErrValidation)
+		}
 	}
 
 	return nil
