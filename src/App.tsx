@@ -25,7 +25,6 @@ import { ManagerDashboard } from './components/ManagerDashboard';
 import { ShipmentActionPage } from './components/ShipmentActionPage';
 import { ScannerTerminal } from './components/ScannerTerminal';
 import { DailySheet } from './components/DailySheet';
-import { FrequentClients } from './components/FrequentClients';
 import { QrLogin } from './components/QrLogin';
 import DoorToDoorShipments from './components/DoorToDoorShipments';
 import { CourierLogin } from './components/CourierLogin';
@@ -49,8 +48,8 @@ function AppContent() {
 
   const [currentPage, setCurrentPage] = useState(() => {
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate', 'archive'],
-      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients', 'archive'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'settings', 'corporate', 'archive'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'archive'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
     };
@@ -86,8 +85,8 @@ function AppContent() {
   useEffect(() => {
     if (!user?.role) return;
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'frequent-clients', 'settings', 'corporate', 'archive'],
-      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'frequent-clients', 'archive'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'payments', 'audit', 'settings', 'corporate', 'archive'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'audit', 'payments', 'archive'],
       direction_head: ['dashboard'],
       chief_head: ['dashboard'],
       receiver: ['receiver'],
@@ -349,8 +348,7 @@ function AppContent() {
         return <AuditLog theme={theme} />;
       case 'payments':
         return <PaymentLog theme={theme} />;
-      case 'frequent-clients':
-        return <FrequentClients theme={theme} />;
+
       case 'archive':
         return <ShipmentArchive theme={theme} />;
       case 'door-to-door':

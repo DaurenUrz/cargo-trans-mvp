@@ -30,7 +30,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     clientType: user?.role === 'corporate' ? 'legal' : 'individual',
     clientName: (user?.role === 'individual' || user?.role === 'corporate') ? (user?.name || '') : '',
     corporateClientId: '',
-    clientSource: '',
+    clientSource: user?.role === 'corporate' ? '' : 'direct',
     clientPhone: '',
     aggregatorClientId: '',
     contractNumber: '',
@@ -375,7 +375,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                     setShipmentData({
                       clientType: 'individual',
                       clientName: '',
-                      clientSource: '',
+                      clientSource: 'direct',
                       clientPhone: '',
                       aggregatorClientId: '',
                       contractNumber: '',
