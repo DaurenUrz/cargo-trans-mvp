@@ -4,13 +4,13 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
   CheckCircle, XCircle, AlertTriangle, RefreshCw,
-  Scan, Clock, MapPin, Package, ArrowRight, ClipboardList
+  Scan, Clock, MapPin, Package, ClipboardList
 } from 'lucide-react';
 
 interface AuditEntry {
   id: string;
   time: string;
-  action: 'LOADED' | 'ARRIVED' | 'ERROR';
+  action: 'LOADED' | 'ARRIVED' | 'ERROR' | 'ISSUED' | 'READY_FOR_LOADING';
   shipmentNumber: string;
   message: string;
 }
@@ -35,6 +35,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [scanMode, setScanMode] = useState<'qr' | 'manual'>('qr');
   const [weightMode, setWeightMode] = useState<{ active: boolean, declared: string, shipmentId: string, shipmentNumber: string } | null>(null);
   const [actualWeight, setActualWeight] = useState('');
+  const [awaitingCargoScan, setAwaitingCargoScan] = useState<{ id: string, number: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -45,7 +46,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
     } else if (weightMode) {
       setTimeout(() => weightInputRef.current?.focus(), 80);
     }
-  }, [processing, feedback, weightMode, scanMode]);
+  }, [processing, feedback, weightMode, scanMode, awaitingCargoScan]);
 
   // Clear feedback after 2 seconds, then refocus
   useEffect(() => {
@@ -74,71 +75,183 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const handleScan = useCallback(async (raw: string) => {
     const id = extractId(raw);
     if (!id) return;
-    // train_receiver has no fixed station — send empty string, backend uses token role
-    const station = user?.station || '';
 
     setProcessing(true);
     setScanInput('');
 
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(id)}/smart-scan`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({}),
-        cache: 'no-store',
-      });
 
-      const body = await res.json().catch(() => ({}));
-
-      if (res.ok) {
-        if (body.requires_weight) {
-          setWeightMode({
-            active: true,
-            declared: body.declared_weight || '',
-            shipmentId: body.shipment_id || id,
-            shipmentNumber: body.shipment_number || id
+      // --- PHASE 2: Scanning the printed cargo label on the shelf ---
+      if (awaitingCargoScan) {
+        if (id !== awaitingCargoScan.id && id !== awaitingCargoScan.number) {
+          setFeedback({ 
+            type: 'error', 
+            message: `Ошибка: отсканирован не тот груз (ожидается ${awaitingCargoScan.number})` 
           });
+          setProcessing(false);
           return;
         }
 
-        const action = body.action as 'LOADED' | 'ARRIVED' | 'READY_FOR_LOADING';
-        const shipmentNum = body.shipment?.shipment_number || id;
-        const msg = body.message || (action === 'LOADED'
-          ? t('shipmentLoadedMsg').replace('{num}', shipmentNum)
-          : action === 'READY_FOR_LOADING'
-          ? t('shipmentIntakeMsg').replace('{num}', shipmentNum)
-          : t('shipmentArrivedMsg').replace('{num}', shipmentNum));
+        // Correct cargo scanned! Send to smart-scan to execute the automatic ISSUED action
+        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(awaitingCargoScan.id)}/smart-scan`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({}),
+          cache: 'no-store',
+        });
 
-        setFeedback({ type: 'success', message: msg });
-        setAuditLog(prev => [{
-          id: Date.now().toString(),
-          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          action,
-          shipmentNumber: shipmentNum,
-          message: msg,
-        }, ...prev]);
+        const body = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          const shipmentNum = body.shipment?.shipment_number || awaitingCargoScan.number;
+          const msg = body.message || `Груз ${shipmentNum} УСПЕШНО ВЫДАН клиенту ✓`;
+
+          setFeedback({ type: 'success', message: msg });
+          setAuditLog(prev => [{
+            id: Date.now().toString(),
+            time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            action: 'ISSUED',
+            shipmentNumber: shipmentNum,
+            message: msg,
+          }, ...prev]);
+
+          setAwaitingCargoScan(null); // Reset the 2-step phase on success
+        } else {
+          setFeedback({ type: 'error', message: body.error || 'Ошибка при выдаче груза' });
+        }
+        setProcessing(false);
+        return;
+      }
+
+      // --- PHASE 1: Fetch shipment to check if it's an arrived cargo issuance ---
+      const checkRes = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(id)}`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!checkRes.ok) {
+        // Not found or not a standard shipment lookup - fallback to standard smart-scan (e.g. transit intakes, load)
+        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(id)}/smart-scan`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({}),
+        });
+
+        const body = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          if (body.requires_weight) {
+            setWeightMode({
+              active: true,
+              declared: body.declared_weight || '',
+              shipmentId: body.shipment_id || id,
+              shipmentNumber: body.shipment_number || id
+            });
+            setProcessing(false);
+            return;
+          }
+
+          const action = body.action;
+          const shipmentNum = body.shipment?.shipment_number || id;
+          const msg = body.message || `Статус обновлен`;
+          setFeedback({ type: 'success', message: msg });
+          setAuditLog(prev => [{
+            id: Date.now().toString(),
+            time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            action,
+            shipmentNumber: shipmentNum,
+            message: msg,
+          }, ...prev]);
+        } else {
+          setFeedback({ type: 'error', message: body.error || 'Ошибка сканирования' });
+        }
+        setProcessing(false);
+        return;
+      }
+
+      const shipment = await checkRes.json();
+
+      // If the scanned shipment is in ARRIVED / READY_FOR_ISSUE status, initiate the 2-step issuance!
+      if (shipment.shipment_status === 'ARRIVED' || shipment.shipment_status === 'READY_FOR_ISSUE') {
+        // Enforce active destination station matching
+        const userStation = user?.station || '';
+        if (userStation && shipment.to_station && userStation !== shipment.to_station) {
+          setFeedback({ 
+            type: 'error', 
+            message: `Выдача невозможна: груз находится на станции ${shipment.to_station}. Ваша станция: ${userStation}` 
+          });
+          setProcessing(false);
+          return;
+        }
+
+        // Verify no pending payments/penalties exist
+        if (shipment.payment_required || (shipment.extra_charge && shipment.extra_charge > 0)) {
+          setFeedback({ 
+            type: 'error', 
+            message: `Выдача заблокирована: требуется доплата ${shipment.extra_charge || 0} тг` 
+          });
+          setProcessing(false);
+          return;
+        }
+
+        // Succesfully validated step 1 (Client's QR check) - enter Step 2!
+        setAwaitingCargoScan({ id: shipment.id, number: shipment.shipment_number });
+        setFeedback({ 
+          type: 'warning', 
+          message: '👤 Клиент рядом! Теперь отсканируйте штрихкод груза на коробке' 
+        });
       } else {
-        const isConflict = res.status === 409;
-        const errMsg = body.error || t('scanError');
-        setFeedback({ type: isConflict ? 'warning' : 'error', message: errMsg });
-        setAuditLog(prev => [{
-          id: Date.now().toString(),
-          time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          action: 'ERROR',
-          shipmentNumber: id,
-          message: errMsg,
-        }, ...prev]);
+        // Standard scan for transit / loading / intake
+        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(id)}/smart-scan`), {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({}),
+        });
+
+        const body = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          if (body.requires_weight) {
+            setWeightMode({
+              active: true,
+              declared: body.declared_weight || '',
+              shipmentId: body.shipment_id || id,
+              shipmentNumber: body.shipment_number || id
+            });
+            setProcessing(false);
+            return;
+          }
+
+          const action = body.action;
+          const shipmentNum = body.shipment?.shipment_number || id;
+          const msg = body.message || `Статус обновлен`;
+          setFeedback({ type: 'success', message: msg });
+          setAuditLog(prev => [{
+            id: Date.now().toString(),
+            time: new Date().toLocaleTimeString(t('locale'), { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            action,
+            shipmentNumber: shipmentNum,
+            message: msg,
+          }, ...prev]);
+        } else {
+          setFeedback({ type: 'error', message: body.error || 'Ошибка сканирования' });
+        }
       }
     } catch {
       setFeedback({ type: 'error', message: t('networkError') });
     } finally {
       setProcessing(false);
     }
-  }, [user?.station, user?.role]);
+  }, [user?.station, user?.role, awaitingCargoScan]);
   const handleConfirmWeight = async () => {
     if (!weightMode || !actualWeight.trim()) return;
     const station = user?.station || '';
@@ -262,11 +375,11 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                 <div key={entry.id} className={`flex items-center gap-3 p-3 rounded-xl border ${cardBg}`}>
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
                     entry.action === 'LOADED'  ? 'bg-blue-100 text-blue-600' :
-                    entry.action === 'ARRIVED' ? 'bg-green-100 text-green-600' :
+                    entry.action === 'ARRIVED' || entry.action === 'ISSUED' ? 'bg-green-100 text-green-600' :
                                                  'bg-red-100 text-red-600'
                   }`}>
                     {entry.action === 'LOADED'  ? <Package className="w-4 h-4" /> :
-                     entry.action === 'ARRIVED' ? <CheckCircle className="w-4 h-4" /> :
+                     entry.action === 'ARRIVED' || entry.action === 'ISSUED' ? <CheckCircle className="w-4 h-4" /> :
                                                   <XCircle className="w-4 h-4" />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -398,6 +511,20 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
                     : (isDark ? 'bg-gray-700 border-gray-600 text-gray-100 placeholder-gray-500' : 'bg-white border-gray-300 placeholder-gray-400')
                 }`}
               />
+
+              {awaitingCargoScan && (
+                <div className={`mt-3 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-center ${isDark ? 'text-yellow-400' : 'text-yellow-800'}`}>
+                  <p className="font-bold text-sm">👤 КЛИЕНТ ПОДТВЕРЖДЕН ({awaitingCargoScan.number})</p>
+                  <p className="text-xs mt-1">Отсканируйте наклейку на самом грузе для завершения выдачи</p>
+                  <button 
+                    onClick={() => setAwaitingCargoScan(null)}
+                    className="mt-2 text-xs font-semibold text-red-500 hover:text-red-700 underline"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              )}
+
               {/* Show confirm button only in manual mode */}
               {scanMode === 'manual' && (
                 <button

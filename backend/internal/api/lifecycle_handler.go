@@ -418,29 +418,36 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			"message":  "Груз " + shipment.ShipmentNumber + " принят на станцию назначения ✓",
 		})
 
-	// Сканирование на выдачу (если уже прибыл)
+	// Сканирование на выдачу (если уже прибыл, автоматически выдаем клиенту!)
 	case model.ShipmentArrived, model.ShipmentReadyForIssue:
-		// Создаем событие ISSUE_SCAN для подтверждения физического наличия при выдаче
-		_, err := s.services.Tracking.Scan(r.Context(), shipmentID, "ISSUE_SCAN", &station, nil, &user.ID, nil)
+		if station != current.ToStation {
+			writeError(w, http.StatusForbidden,
+				"Выдача невозможна: груз находится на станции "+current.ToStation+". Ваша станция: "+station)
+			return
+		}
+
+		// Вызываем Issue для автоматической выдачи
+		shipment, err := s.services.Shipments.Issue(r.Context(), shipmentID, &user.ID, &user.Name)
 		if err != nil {
+			if errors.Is(err, service.ErrPaymentRequired) {
+				writeError(w, http.StatusPaymentRequired, 
+					fmt.Sprintf("Выдача заблокирована: требуется доплата %.0f тг", current.ExtraCharge))
+				return
+			}
 			handleServiceError(w, err)
 			return
 		}
-		
-		// Если был ARRIVED, переводим в READY_FOR_ISSUE
-		if current.ShipmentStatus == model.ShipmentArrived {
-			shipment, err := s.services.Shipments.ReadyForIssue(r.Context(), shipmentID, &user.ID, &user.Name)
-			if err != nil {
-				handleServiceError(w, err)
-				return
-			}
-			s.socket.BroadcastToRoom("/", s.stationRoom(station), "shipment-updated", shipment)
-		}
+
+		// Создаем событие ISSUE_SCAN для отслеживания
+		_, _ = s.services.Tracking.Scan(r.Context(), shipmentID, "ISSUE_SCAN", &station, nil, &user.ID, nil)
+
+		// Оповещаем сокеты
+		s.socket.BroadcastToRoom("/", s.stationRoom(station), "shipment-updated", shipment)
 
 		writeJSON(w, http.StatusOK, map[string]any{
-			"shipment": current,
-			"action":   "ISSUE_SCAN",
-			"message":  "Груз " + current.ShipmentNumber + " отсканирован перед выдачей ✓",
+			"shipment": shipment,
+			"action":   "ISSUED",
+			"message":  "Груз " + shipment.ShipmentNumber + " УСПЕШНО ВЫДАН клиенту ✓",
 		})
 
 	// Курьер взял задачу на доставку — приемосдатчик сканирует для подтверждения выдачи курьеру
