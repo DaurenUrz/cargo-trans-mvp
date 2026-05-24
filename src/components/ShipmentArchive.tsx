@@ -192,7 +192,7 @@ export function ShipmentArchive({ theme = 'light' }: Props) {
             className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputCls}`}
           >
             <option value="">Все направления</option>
-            {['Алматы-1', 'Астана Нұрлы Жол', 'Шымкент', 'Ақтөбе', 'Қарағанды', 'Атырау'].map(s => (
+            {['Алматы-2', 'Астана Нұрлы Жол', 'Шымкент', 'Ақтөбе', 'Қарағанды', 'Атырау'].map(s => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>

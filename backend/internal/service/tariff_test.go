@@ -17,7 +17,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 	}{
 		{
 			name:         "Base case: Almaty to Astana 10kg",
-			from:         "Алматы-1",
+			from:         "Алматы-2",
 			to:           "Астана Нұрлы Жол",
 			weight:       "10",
 			description:  "Normal cargo",
@@ -27,7 +27,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		},
 		{
 			name:         "Individual Door-to-Door (+10,000)",
-			from:         "Алматы-1",
+			from:         "Алматы-2",
 			to:           "Астана Нұрлы Жол",
 			weight:       "10",
 			description:  "Normal cargo",
@@ -37,7 +37,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		},
 		{
 			name:         "Corporate Door-to-Door (No surcharge)",
-			from:         "Алматы-1",
+			from:         "Алматы-2",
 			to:           "Астана Нұрлы Жол",
 			weight:       "10",
 			description:  "Normal cargo",
@@ -47,7 +47,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		},
 		{
 			name:         "Fragile Surcharge (+1,000)",
-			from:         "Алматы-1",
+			from:         "Алматы-2",
 			to:           "Астана Нұрлы Жол",
 			weight:       "10",
 			description:  "Хрупкий груз",
@@ -57,7 +57,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		},
 		{
 			name:         "Oversized Surcharge (+2,500)",
-			from:         "Алматы-1",
+			from:         "Алматы-2",
 			to:           "Астана Нұрлы Жол",
 			weight:       "10",
 			description:  "Негабаритный груз",
@@ -67,7 +67,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		},
 		{
 			name:         "Combined Surcharges (Individual + D2D + Fragile)",
-			from:         "Алматы-1",
+			from:         "Алматы-2",
 			to:           "Астана Нұрлы Жол",
 			weight:       "10",
 			description:  "Очень хрупкий",
@@ -78,7 +78,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		{
 			name:         "Different Route: Karaganda to Almaty 20kg",
 			from:         "Қарағанды",
-			to:           "Алматы-1",
+			to:           "Алматы-2",
 			weight:       "20",
 			description:  "Normal",
 			isDoorToDoor: false,

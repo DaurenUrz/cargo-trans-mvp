@@ -411,7 +411,7 @@ export function ClientInfo({
                   }`}
               >
                 <option value="">{t('selectStation')}</option>
-                <option value="Алматы-1">Алматы-1</option>
+                <option value="Алматы-2">Алматы-2</option>
                 <option value="Астана Нұрлы Жол">Астана Нұрлы Жол</option>
                 <option value="Шымкент">Шымкент</option>
                 <option value="Ақтөбе">Ақтөбе</option>
@@ -433,7 +433,7 @@ export function ClientInfo({
                   }`}
               >
                 <option value="">{t('selectStation')}</option>
-                <option value="Алматы-1">Алматы-1</option>
+                <option value="Алматы-2">Алматы-2</option>
                 <option value="Астана Нұрлы Жол">Астана Нұрлы Жол</option>
                 <option value="Шымкент">Шымкент</option>
                 <option value="Ақтөбе">Ақтөбе</option>

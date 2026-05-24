@@ -22,7 +22,7 @@
     { "key": "issuePassword", "value": "secret123" },
     { "key": "accountingEmail", "value": "accounting@example.com" },
     { "key": "accountingPassword", "value": "secret123" },
-    { "key": "originStation", "value": "Алматы-1" },
+    { "key": "originStation", "value": "Алматы-2" },
     { "key": "transitStation", "value": "Қарағанды" },
     { "key": "destinationStation", "value": "Ақтөбе" },
     { "key": "receiverName", "value": "Receiver User" },

@@ -53,7 +53,7 @@ func TestShipmentCreationScenarios(t *testing.T) {
 			req: CreateShipmentRequest{
 				ClientID: "user-ind",
 				ClientName: "Test Individual",
-				FromStation: "Алматы-1",
+				FromStation: "Алматы-2",
 				ToStation: "Астана Нұрлы Жол",
 				Weight: "10",
 				QuantityPlaces: 1,
@@ -68,7 +68,7 @@ func TestShipmentCreationScenarios(t *testing.T) {
 			req: CreateShipmentRequest{
 				ClientID: "user-corp",
 				ClientName: "Test Corporate",
-				FromStation: "Алматы-1",
+				FromStation: "Алматы-2",
 				ToStation: "Астана Нұрлы Жол",
 				Weight: "10",
 				QuantityPlaces: 1,
@@ -84,7 +84,7 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				ClientID: "unknown",
 				ClientName: "Test Guest",
 				ClientRole: "individual",
-				FromStation: "Алматы-1",
+				FromStation: "Алматы-2",
 				ToStation: "Астана Нұрлы Жол",
 				Weight: "10",
 				QuantityPlaces: 1,

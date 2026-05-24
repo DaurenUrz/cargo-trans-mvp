@@ -35,7 +35,7 @@ func TestPilotLifecycleFlow(t *testing.T) {
 	decodeResponse(t, registerResp, &user)
 	clientID := user["id"].(string)
 
-	originStation := "Алматы-1"
+	originStation := "Алматы-2"
 	destStation := "Ақтөбе"
 	operatorToken := createEmployeeAndLogin(t, server, services, "Origin Manager", "manager@test", "secret123", model.RoleManager, &originStation)
 	loadingToken := createEmployeeAndLogin(t, server, services, "Loader", "loader@test", "secret123", model.RoleLoading, &originStation)
@@ -191,7 +191,7 @@ func TestTrackingAndReportsEndpoints(t *testing.T) {
 		ClientID:      "client-1",
 		ClientName:    "Client",
 		ClientLogin:   "client@test",
-		FromStation:   "Алматы-1",
+		FromStation:   "Алматы-2",
 		ToStation:     "Ақтөбе",
 		DepartureDate: time.Now().UTC(),
 		Weight:        "10",

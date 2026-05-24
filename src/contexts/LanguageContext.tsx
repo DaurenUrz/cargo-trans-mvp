@@ -13,7 +13,7 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 const translations = {
   ru: {
     // Top Bar
-    headerStation: 'Станция Алматы-1',
+    headerStation: 'Станция Алматы-2',
     search: 'Поиск',
     systemNameDesc: 'Система управления грузоперевозками',
     clientRegistration: 'Регистрация клиента',
@@ -1283,7 +1283,7 @@ const translations = {
 
   kk: {
     // Top Bar
-    headerStation: 'Алматы-1 станциясы',
+    headerStation: 'Алматы-2 станциясы',
     search: 'Іздеу',
     systemNameDesc: 'Жүк тасымалдауды басқару жүйесі',
     clientRegistration: 'Клиентті тіркеу',

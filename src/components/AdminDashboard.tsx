@@ -296,7 +296,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
   );
 
   const stations = [
-    'Алматы-1',
+    'Алматы-2',
     'Астана Нұрлы Жол',
     'Шымкент',
     'Ақтөбе',
@@ -857,7 +857,7 @@ export function AdminDashboard({ theme = 'light' }: AdminDashboardProps) {
                   className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200' : 'border-gray-300'}`}
                 >
                   <option value="">{t('selectStation')}</option>
-                  {['Алматы-1', 'Астана Нұрлы Жол', 'Шымкент', 'Ақтөбе', 'Қарағанды', 'Атырау'].map(s => (
+                  {['Алматы-2', 'Астана Нұрлы Жол', 'Шымкент', 'Ақтөбе', 'Қарағанды', 'Атырау'].map(s => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>

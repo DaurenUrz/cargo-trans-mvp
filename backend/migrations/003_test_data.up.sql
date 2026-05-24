@@ -17,7 +17,7 @@ ON CONFLICT (id) DO NOTHING;
 -- 2. Станции
 INSERT INTO stations (id, name, city, code, is_active) VALUES
     ('shymkent', 'Шымкент', 'Шымкент', 'CIT-SHYM', TRUE),
-    ('almaty-1', 'Алматы-1', 'Алматы', 'CIT-ALA1', TRUE),
+    ('almaty-2', 'Алматы-2', 'Алматы', 'CIT-ALA2', TRUE),
     ('karaganda', 'Қарағанды', 'Қарағанды', 'CIT-KRG', TRUE),
     ('astana', 'Астана Нұрлы Жол', 'Астана', 'CIT-AST', TRUE),
     ('aktobe', 'Ақтөбе', 'Ақтөбе', 'CIT-AKT', TRUE)

@@ -72,7 +72,7 @@ func TestFullLifecycle_AstanaToAlmaty(t *testing.T) {
 	ctx := context.Background()
 	destOperatorID := "op-2"
 	opName := "Almaty Op"
-	opStation := "Алматы-1"
+	opStation := "Алматы-2"
 	astanaStation := "Астана Нұрлы Жол"
 
 	// 1. Создание (Астана -> Алматы)
