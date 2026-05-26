@@ -108,10 +108,10 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         body: JSON.stringify({
           name: formData.contactPerson,
           login: formData.login,
-          ...(formData.password ? { password: formData.password } : {}), // only send if filled
+          password: formData.password || undefined,
           company: formData.companyName,
           bin: formData.bin,
-          phone: formData.phone,
+          phone: formData.phone || null,
           deposit: formData.deposit ? parseFloat(formData.deposit) : 0
         })
       });
@@ -131,8 +131,8 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         fetchClients();
         alert('Клиент успешно создан');
       } else {
-        const error = await res.json();
-        alert(error.message || 'Ошибка при создании клиента');
+        const errData = await res.json();
+        alert(errData.error || errData.message || 'Ошибка при создании клиента');
       }
     } catch (error) {
       console.error('Error creating client', error);
