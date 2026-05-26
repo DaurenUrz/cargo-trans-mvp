@@ -98,6 +98,15 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
     try {
       const url = editingClientId ? `/api/clients/${editingClientId}` : '/api/clients';
       const method = editingClientId ? 'PUT' : 'POST';
+      const payload = {
+        name: formData.contactPerson,
+        login: formData.login,
+        password: formData.password || undefined,
+        company: formData.companyName,
+        bin: formData.bin,
+        phone: formData.phone || null,
+        deposit: formData.deposit ? parseFloat(formData.deposit) : 0
+      };
 
       const res = await fetch(withApiBase(url), {
         method: method,
@@ -105,15 +114,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-          name: formData.contactPerson,
-          login: formData.login,
-          password: formData.password || undefined,
-          company: formData.companyName,
-          bin: formData.bin,
-          phone: formData.phone || null,
-          deposit: formData.deposit ? parseFloat(formData.deposit) : 0
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -131,12 +132,18 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
         fetchClients();
         alert('Клиент успешно создан');
       } else {
-        const errData = await res.json();
-        alert(errData.error || errData.message || 'Ошибка при создании клиента');
+        const text = await res.text();
+        console.error('Create client failed:', res.status, text);
+        try {
+          const errData = JSON.parse(text);
+          alert(`Ошибка (${res.status}): ${errData.error || errData.message || text}`);
+        } catch {
+          alert(`Ошибка (${res.status}): ${text}`);
+        }
       }
-    } catch (error) {
-      console.error('Error creating client', error);
-      alert('Ошибка соединения');
+    } catch (error: any) {
+      console.error('Network error creating client:', error);
+      alert(`Ошибка соединения: ${error?.message || error}`);
     } finally {
       setIsLoading(false);
     }
