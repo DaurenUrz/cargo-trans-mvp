@@ -47,17 +47,19 @@ export interface TariffParams {
   clientType?: string;
 }
 
+export const WAYBILL_FEE = 107;
+
 /**
  * Возвращает ставку за 10 кг для данного маршрута.
  */
-export function getBaseRate(from: string, to: string): number {
-  const key = `${from.trim().toLowerCase()}-${to.trim().toLowerCase()}`;
-  return ROUTE_RATES[key] ?? DEFAULT_RATE;
+export function getBaseRate(_from: string, _to: string): number {
+  return 976.9; // 9769 ₸ за 100 кг везде
 }
 
 /**
  * Рассчитывает итоговую стоимость перевозки.
  * Формула: (вес / 10) × ставка + надбавки, затем скидка по билету.
+ * Плюс 107 ₸ за распечатывание накладной.
  * Возвращает null если данных недостаточно.
  */
 export function calculateShipmentCost(params: TariffParams): number | null {
@@ -77,6 +79,9 @@ export function calculateShipmentCost(params: TariffParams): number | null {
   if (isDoorToDoor && clientType !== 'legal') {
     cost += 10000;
   }
+
+  // Добавляем плату за распечатывание накладной
+  cost += WAYBILL_FEE;
 
   return Math.round(cost);
 }

@@ -27,11 +27,7 @@ var routeRates = map[string]float64{
 }
 
 func getBaseRate(from, to string) float64 {
-	key := strings.ToLower(strings.TrimSpace(from)) + "-" + strings.ToLower(strings.TrimSpace(to))
-	if rate, ok := routeRates[key]; ok {
-		return rate
-	}
-	return 5000 // Fallback
+	return 976.9 // Flat rate per 10kg everywhere (9769 per 100kg)
 }
 
 func calculateCostByTariff(fromStation, toStation string, weightStr string, description string, isDoorToDoor bool, isIndividual bool) float64 {
@@ -63,6 +59,9 @@ func calculateCostByTariff(fromStation, toStation string, weightStr string, desc
 	if isDoorToDoor && isIndividual {
 		cost += 10000
 	}
+
+	// +107 тг за распечатывание накладной
+	cost += 107
 
 	return math.Round(cost)
 }

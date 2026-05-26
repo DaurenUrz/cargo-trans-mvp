@@ -111,9 +111,12 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
         {/* Стоимость доставки */}
         {price !== null && (
           <div className={`rounded-lg border p-4 ${isDark ? 'bg-blue-900/20 border-blue-800/50' : 'bg-blue-50 border-blue-200'}`}>
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-1">
               <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('transportCost')}:</span>
               <span className={`text-2xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{price.toLocaleString()} ₸</span>
+            </div>
+            <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} text-right font-medium`}>
+              (+107 ₸ плата за распечатывание накладной)
             </div>
           </div>
         )}

@@ -23,7 +23,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Normal cargo",
 			isDoorToDoor: false,
 			isIndividual: true,
-			expectedCost: 976,
+			expectedCost: 1084,
 		},
 		{
 			name:         "Individual Door-to-Door (+10,000)",
@@ -33,7 +33,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Normal cargo",
 			isDoorToDoor: true,
 			isIndividual: true,
-			expectedCost: 10976,
+			expectedCost: 11084,
 		},
 		{
 			name:         "Corporate Door-to-Door (No surcharge)",
@@ -43,7 +43,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Normal cargo",
 			isDoorToDoor: true,
 			isIndividual: false,
-			expectedCost: 976,
+			expectedCost: 1084,
 		},
 		{
 			name:         "Fragile Surcharge (+1,000)",
@@ -53,7 +53,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Хрупкий груз",
 			isDoorToDoor: false,
 			isIndividual: true,
-			expectedCost: 1976,
+			expectedCost: 2084,
 		},
 		{
 			name:         "Oversized Surcharge (+2,500)",
@@ -63,7 +63,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Негабаритный груз",
 			isDoorToDoor: false,
 			isIndividual: true,
-			expectedCost: 3476,
+			expectedCost: 3584,
 		},
 		{
 			name:         "Combined Surcharges (Individual + D2D + Fragile)",
@@ -73,7 +73,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Очень хрупкий",
 			isDoorToDoor: true,
 			isIndividual: true,
-			expectedCost: 11976, // 976 + 10000 + 1000
+			expectedCost: 12084,
 		},
 		{
 			name:         "Different Route: Karaganda to Almaty 20kg",
@@ -83,7 +83,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 			description:  "Normal",
 			isDoorToDoor: false,
 			isIndividual: true,
-			expectedCost: 1650, // (20/10) * 825
+			expectedCost: 2061,
 		},
 	}
 

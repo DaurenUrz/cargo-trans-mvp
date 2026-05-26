@@ -37,6 +37,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'cost_desc' | 'cost_asc'>('date_desc');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [transitRouteFilter, setTransitRouteFilter] = useState<string>('all');
 
   const [issueModal, setIssueModal] = useState<{ isOpen: boolean; shipmentId: string | null; error: string | null }>({ isOpen: false, shipmentId: null, error: null });
   const [issuePin, setIssuePin] = useState('');
@@ -146,6 +147,22 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
+
+  const uniqueOriginStations = Array.from(
+    new Set(
+      s.filter(x =>
+        x.to_station === myStation &&
+        ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status)
+      ).map(x => x.from_station)
+    )
+  ).sort();
+
+  const filteredTransitShipments = transitRouteFilter === 'all'
+    ? transitShipments
+    : transitShipments.filter(x => x.from_station === transitRouteFilter);
+
+  const totalPlaces = filteredTransitShipments.reduce((acc, x) => acc + (x.quantity_places || 1), 0);
+  const totalWeight = filteredTransitShipments.reduce((acc, x) => acc + (parseFloat(x.weight) || 0), 0);
 
   const formatDate = (d: string) => {
     const dt = new Date(d);
@@ -468,27 +485,117 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
             )}
 
             {activeTab === 'transit' && (
-              transitShipments.length === 0 ? <p className="text-gray-500 p-4">{t('nothingFound')}</p> : transitShipments.map(s => (
-                <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-blue-600">{s.shipment_number}</span>
-                        {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
-                      </div>
-                      <span className="text-sm font-medium">{s.client_name}</span>
+              <div className="space-y-4">
+                {/* Route filter & summary metrics block */}
+                <div className={`p-6 rounded-2xl border transition-all ${
+                  isDark 
+                    ? 'bg-gray-800/80 border-gray-700/80 backdrop-blur-md shadow-lg shadow-black/10' 
+                    : 'bg-white border-gray-200/80 shadow-md shadow-gray-100/50'
+                }`}>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h3 className={`text-sm font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Фильтр по маршрутам прибытия
+                      </h3>
+                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'} mt-0.5`}>
+                        Выберите станцию отправления для просмотра сводной информации
+                      </p>
                     </div>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
-                      {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
-                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <label className={`text-xs font-semibold whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                        Станция отправления:
+                      </label>
+                      <select
+                        value={transitRouteFilter}
+                        onChange={e => setTransitRouteFilter(e.target.value)}
+                        className={`px-3.5 py-1.5 text-xs font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                          isDark 
+                            ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-650' 
+                            : 'border-gray-300 bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <option value="all">Все станции отправления</option>
+                        {uniqueOriginStations.map(station => (
+                          <option key={station} value={station}>
+                            {station}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className={`text-sm flex flex-wrap gap-x-4 gap-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.from_station} → {s.to_station}</span>
-                    <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {s.weight} {t('kg')}</span>
-                    <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(s.created_at)}</span>
+
+                  {/* Summary metrics display */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 pt-5 border-t border-dashed border-gray-200 dark:border-gray-700">
+                    {/* Weight stat */}
+                    <div className={`p-4 rounded-xl flex items-center gap-4 transition-all hover:scale-[1.02] ${
+                      isDark 
+                        ? 'bg-blue-950/40 border border-blue-900/30' 
+                        : 'bg-blue-50/60 border border-blue-100'
+                    }`}>
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        isDark ? 'bg-blue-900/60 text-blue-300' : 'bg-blue-100 text-blue-600'
+                      }`}>
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Суммарный вес грузов</div>
+                        <div className={`text-2xl font-bold tracking-tight mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>
+                          {totalWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} кг
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Places stat */}
+                    <div className={`p-4 rounded-xl flex items-center gap-4 transition-all hover:scale-[1.02] ${
+                      isDark 
+                        ? 'bg-purple-950/40 border border-purple-900/30' 
+                        : 'bg-purple-50/60 border border-purple-100'
+                    }`}>
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                        isDark ? 'bg-purple-900/60 text-purple-300' : 'bg-purple-100 text-purple-600'
+                      }`}>
+                        <Package className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Общее количество мест</div>
+                        <div className={`text-2xl font-bold tracking-tight mt-0.5 ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>
+                          {totalPlaces.toLocaleString()} мест
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              ))
+
+                {/* Filtered shipments list */}
+                {filteredTransitShipments.length === 0 ? (
+                  <p className="text-gray-500 p-4 text-center">{t('nothingFound')}</p>
+                ) : (
+                  filteredTransitShipments.map(s => (
+                    <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-blue-600">{s.shipment_number}</span>
+                            {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
+                          </div>
+                          <span className="text-sm font-medium">{s.client_name}</span>
+                        </div>
+                        <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
+                          {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
+                        </span>
+                      </div>
+                      <div className={`text-sm flex flex-wrap gap-x-4 gap-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.from_station} → {s.to_station}</span>
+                        <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {s.weight} {t('kg')} ({s.quantity_places || 1} {t('pcs') || 'мест'})</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(s.created_at)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </>
         )}

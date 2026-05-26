@@ -17,14 +17,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   const { user } = useAuth();
   const isDark = theme === 'dark';
 
-  const transportCost = calculateShipmentCost({
-    fromStation: data.fromStation,
-    toStation: data.toStation,
-    weight: data.weight,
-    isFragile: false,
-    isOversized: false,
-    hasTicket: false,
-  }) || 0;
+  const pureBaseCost = Math.round((parseFloat(data.weight || '0') / 10) * 976.9);
 
   const total = calculateShipmentCost({
     ...data,
@@ -52,7 +45,12 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
         <div className={`rounded-lg p-6 space-y-3 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50'}`}>
           <div className="flex justify-between text-sm">
             <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('baseTransportCost')}</span>
-            <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{transportCost.toLocaleString()} ₸</span>
+            <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{pureBaseCost.toLocaleString()} ₸</span>
+          </div>
+
+          <div className="flex justify-between text-sm">
+            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Плата за распечатывание накладной</span>
+            <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 107 ₸</span>
           </div>
 
           {data.isFragile && (
