@@ -99,7 +99,7 @@ export function CorporateClients({ theme }: { theme?: 'light' | 'dark' }) {
       const url = editingClientId ? `/api/clients/${editingClientId}` : '/api/clients';
       const method = editingClientId ? 'PUT' : 'POST';
 
-      const res = await fetch(url, {
+      const res = await fetch(withApiBase(url), {
         method: method,
         headers: {
           'Content-Type': 'application/json',
