@@ -64,15 +64,16 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
       }).join('');
       printWindow.document.write(`<!DOCTYPE html><html><head><title>Печать ${shipment.shipment_number}</title>
         <style>
-          body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:5px;color:black;background:white;}
-          .label{page-break-after:always;margin-bottom:8px;}.label:last-child{page-break-after:auto;}
-          .header{text-align:center;font-weight:bold;font-size:20px;margin-bottom:5px;text-transform:uppercase;}
-          .shipment-id{text-align:center;font-size:22px;font-weight:bold;margin:5px 0;}
-          .qr-container{display:flex;justify-content:center;margin:10px 0;}
-          .qr-container svg{width:45mm!important;height:45mm!important;}
-          .info{font-size:14px;font-weight:bold;margin-bottom:5px;}
-          .row{display:flex;justify-content:space-between;margin-bottom:4px;}
-          @media print{@page{margin:0;size:58mm auto;}body{margin:0;padding:5px;}}
+          body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:0;color:black;background:white;}
+          .label{page-break-inside:avoid;page-break-after:always;break-after:page;margin:0!important;padding:4px 0!important;box-sizing:border-box;}
+          .label:last-child{page-break-after:avoid;break-after:avoid;}
+          .header{text-align:center;font-weight:bold;font-size:18px;margin-bottom:3px;text-transform:uppercase;}
+          .shipment-id{text-align:center;font-size:16px;font-weight:bold;margin:3px 0;}
+          .qr-container{display:flex;justify-content:center;margin:6px 0;}
+          .qr-container svg{width:35mm!important;height:35mm!important;}
+          .info{font-size:13px;font-weight:bold;margin-bottom:4px;}
+          .row{display:flex;justify-content:space-between;margin-bottom:3px;}
+          @media print{@page{margin:0;size:58mm auto;}body{margin:0;padding:0;}}
         </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();

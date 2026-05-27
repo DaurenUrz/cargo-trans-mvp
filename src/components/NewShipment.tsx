@@ -258,43 +258,48 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 background: white;
               }
               .label {
+                page-break-inside: avoid;
                 page-break-after: always;
-                margin-bottom: 8px;
+                break-after: page;
+                margin: 0 !important;
+                padding: 4px 0 !important;
+                box-sizing: border-box;
               }
               .label:last-child {
-                page-break-after: auto;
+                page-break-after: avoid;
+                break-after: avoid;
               }
               .header {
                 text-align: center;
                 font-weight: bold;
-                font-size: 20px;
-                margin-bottom: 5px;
+                font-size: 18px;
+                margin-bottom: 3px;
                 text-transform: uppercase;
               }
               .shipment-id {
                 text-align: center;
-                font-size: 18px;
+                font-size: 16px;
                 font-weight: bold;
-                margin: 5px 0;
+                margin: 3px 0;
               }
               .qr-container {
                 display: flex;
                 justify-content: center;
-                margin: 10px 0;
+                margin: 6px 0;
               }
               .qr-container svg {
-                width: 45mm !important;
-                height: 45mm !important;
+                width: 35mm !important;
+                height: 35mm !important;
               }
               .info {
-                font-size: 14px;
+                font-size: 13px;
                 font-weight: bold;
-                margin-bottom: 5px;
+                margin-bottom: 4px;
               }
               .row {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 4px;
+                margin-bottom: 3px;
               }
               @media print {
                 @page { margin: 0; size: 58mm auto; }
@@ -385,6 +390,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                     setCurrentStep('client');
 
                     setShipmentData({
+                      clientId: '',
                       clientType: 'individual',
                       clientName: '',
                       clientSource: 'direct',
