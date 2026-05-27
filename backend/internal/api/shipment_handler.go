@@ -65,6 +65,8 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		DeliveryAddress *string `json:"delivery_address"`
 		DoorToDoorPhone *string `json:"door_to_door_phone"`
 		SenderPhone     *string `json:"sender_phone"`
+		HasTicket       bool    `json:"has_ticket"`
+		TicketNumber    string  `json:"ticket_number"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -113,6 +115,8 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		DeliveryAddress: req.DeliveryAddress,
 		DoorToDoorPhone: req.DoorToDoorPhone,
 		SenderPhone:     req.SenderPhone,
+		HasTicket:       req.HasTicket,
+		TicketNumber:    req.TicketNumber,
 	})
 	if err != nil {
 		handleServiceError(w, err)

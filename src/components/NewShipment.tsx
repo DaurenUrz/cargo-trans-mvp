@@ -80,7 +80,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       fromStation: shipmentData.fromStation,
       toStation: shipmentData.toStation,
       weight: shipmentData.weight,
-      hasTicket: false,
+      hasTicket: shipmentData.hasTicket,
       isDoorToDoor: shipmentData.isDoorToDoor,
       clientType: shipmentData.clientType
     }) || 0;
@@ -134,7 +134,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           pickup_address: shipmentData.isDoorToDoor ? shipmentData.pickupAddress : null,
           delivery_address: shipmentData.isDoorToDoor ? shipmentData.deliveryAddress : null,
           door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null,
-          sender_phone: shipmentData.clientPhone || null
+          sender_phone: shipmentData.clientPhone || null,
+          has_ticket: shipmentData.hasTicket,
+          ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : ''
         })
       });
 

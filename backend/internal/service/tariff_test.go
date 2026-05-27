@@ -13,6 +13,7 @@ func TestCalculateCostByTariff(t *testing.T) {
 		description   string
 		isDoorToDoor  bool
 		isIndividual  bool
+		hasTicket     bool
 		expectedCost  float64
 	}{
 		{
@@ -95,11 +96,33 @@ func TestCalculateCostByTariff(t *testing.T) {
 			isIndividual: true,
 			expectedCost: 410,
 		},
+		{
+			name:         "Almaty to Astana 10kg with Mobius Ticket (50% discount)",
+			from:         "Алматы-2",
+			to:           "Астана Нұрлы Жол",
+			weight:       "10",
+			description:  "Normal cargo",
+			isDoorToDoor: false,
+			isIndividual: true,
+			hasTicket:    true,
+			expectedCost: 635,
+		},
+		{
+			name:         "Astana to Karaganda 10kg with Mobius Ticket (50% discount)",
+			from:         "Астана Нұрлы Жол",
+			to:           "Қарағанды",
+			weight:       "10",
+			description:  "Normal",
+			isDoorToDoor: false,
+			isIndividual: true,
+			hasTicket:    true,
+			expectedCost: 259,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cost := calculateCostByTariff(tt.from, tt.to, tt.weight, tt.description, tt.isDoorToDoor, tt.isIndividual)
+			cost := calculateCostByTariff(tt.from, tt.to, tt.weight, tt.description, tt.isDoorToDoor, tt.isIndividual, tt.hasTicket)
 			if cost != tt.expectedCost {
 				t.Errorf("calculateCostByTariff() = %v, want %v", cost, tt.expectedCost)
 			}

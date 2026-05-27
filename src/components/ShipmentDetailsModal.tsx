@@ -24,6 +24,8 @@ interface ShipmentDetailsModalProps {
     door_to_door_phone?: string;
     payment_required?: boolean;
     extra_charge?: number;
+    has_ticket?: boolean;
+    ticket_number?: string;
   };
   onPaymentSuccess?: () => void;
   onClose: () => void;
@@ -128,6 +130,21 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
                   <Phone className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                   <span className={label}>Login:</span>
                   <span className={value}>{shipment.client_login}</span>
+                </div>
+              )}
+              {shipment.has_ticket && (
+                <div className={`mt-3 p-3 rounded-lg flex items-center justify-between border ${
+                  isDark ? 'bg-blue-950/30 border-blue-900/50 text-blue-300' : 'bg-blue-50 border-blue-100 text-blue-800'
+                }`}>
+                  <div className="flex items-center gap-2.5">
+                    <span className="inline-flex px-2 py-0.5 text-xs font-bold rounded bg-blue-600 text-white uppercase tracking-wide">
+                      Билет Mobius
+                    </span>
+                    <span className="text-sm font-semibold">№ {shipment.ticket_number || '—'}</span>
+                  </div>
+                  <span className="text-xs font-bold uppercase text-green-500 tracking-wide">
+                    Скидка 50%
+                  </span>
                 </div>
               )}
             </div>

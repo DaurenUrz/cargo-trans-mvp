@@ -156,6 +156,8 @@ type Shipment struct {
 	ExtraCharge     float64   `json:"extra_charge" db:"extra_charge"`
 	PickupCode      *string   `json:"pickup_code,omitempty"`
 	IssueCode       *string   `json:"issue_code,omitempty"`
+	HasTicket       bool      `json:"has_ticket" db:"has_ticket"`
+	TicketNumber    string    `json:"ticket_number" db:"ticket_number"`
 	LastUpdatedAt   time.Time `json:"last_updated_at"`
 	CreatedBy       *string   `json:"created_by,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`

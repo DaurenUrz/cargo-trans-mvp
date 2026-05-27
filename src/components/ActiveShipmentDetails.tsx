@@ -26,6 +26,8 @@ interface ActiveShipmentDetailsProps {
     statusColor?: string;
     payment_required?: boolean;
     extra_charge?: number;
+    has_ticket?: boolean;
+    ticket_number?: string;
   };
   onClose: () => void;
   onRefresh?: () => void;
@@ -156,6 +158,21 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                 </p>
               </div>
             </div>
+            {shipment.has_ticket && (
+              <div className={`mt-5 p-3 rounded-xl flex items-center justify-between border ${
+                isDark ? 'bg-blue-950/30 border-blue-900/50 text-blue-300' : 'bg-blue-50 border-blue-100 text-blue-800'
+              }`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="inline-flex px-2.5 py-0.5 text-xs font-bold rounded-md bg-blue-600 text-white uppercase tracking-wider">
+                    Билет Mobius
+                  </span>
+                  <span className="text-sm font-semibold">№ {shipment.ticket_number || '—'}</span>
+                </div>
+                <span className="text-xs font-bold uppercase text-green-500 tracking-wide">
+                  Применена скидка 50%
+                </span>
+              </div>
+            )}
           </div>
 
           <div className={card}>

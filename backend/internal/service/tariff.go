@@ -26,7 +26,7 @@ var routeTariffs = map[string]routeTariff{
 // Накладная — фиксированный сбор за распечатывание (₸)
 const waybillFee = 107
 
-func calculateCostByTariff(fromStation, toStation string, weightStr string, description string, isDoorToDoor bool, isIndividual bool) float64 {
+func calculateCostByTariff(fromStation, toStation string, weightStr string, description string, isDoorToDoor bool, isIndividual bool, hasTicket bool) float64 {
 	if fromStation == "" || toStation == "" || weightStr == "" {
 		return 0
 	}
@@ -53,6 +53,9 @@ func calculateCostByTariff(fromStation, toStation string, weightStr string, desc
 	}
 
 	cost := (blocks * tariff.TransportRate) + tariff.DeclaredValueFee
+	if hasTicket {
+		cost *= 0.5
+	}
 
 	// +10 000 тг для door-to-door от физлица (Фаза 5, status_logic.md)
 	if isDoorToDoor && isIndividual {
