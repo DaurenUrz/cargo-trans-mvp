@@ -134,6 +134,19 @@ export async function printWaybill(shipment: any) {
   const quantityPlaces = Math.max(1, Number(shipment.quantity_places || shipment.quantityPlaces) || 1);
   const description = shipment.description || 'Грузобагаж';
 
+  let operatorName = shipment.client_login || 'сотрудник';
+  try {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      if (parsed && parsed.name) {
+        operatorName = parsed.name;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to parse current user for waybill printing:', e);
+  }
+
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${shipmentNumber}`;
 
   // 4. Update the opened window with the fully rendered waybill design
@@ -434,7 +447,6 @@ export async function printWaybill(shipment: any) {
       <div class="header">
         <div class="logo-area">
           <span class="logo-title">CargoTrans</span>
-          <span class="logo-subtitle">Транспортная компания</span>
         </div>
         <div class="title-area">
           <h1 class="title-main">Грузобагажная накладная</h1>
@@ -572,7 +584,7 @@ export async function printWaybill(shipment: any) {
       <div class="signature-block">
         <div>
           <div class="signature-line"></div>
-          <div class="signature-label">Менеджер оформивший (подпись / ФИО: ${shipment.client_login || 'сотрудник'})</div>
+          <div class="signature-label">Менеджер оформивший (подпись / ФИО: ${operatorName})</div>
         </div>
         <div>
           <div class="signature-line"></div>
@@ -582,7 +594,6 @@ export async function printWaybill(shipment: any) {
 
       <!-- Footer notice -->
       <div class="footer-notice">
-        Договор-оферта перевозки грузобагажа CargoTrans. Претензии по качеству принимаются в течение 14 дней с момента выдачи груза.<br/>
         Благодарим за то, что выбрали наш сервис! Распечатано автоматически из информационной системы CargoTrans.
       </div>
 
