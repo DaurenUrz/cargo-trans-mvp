@@ -161,13 +161,29 @@ export async function printWaybill(shipment: any) {
           font-family: "Segoe UI", -apple-system, sans-serif;
           color: #0f172a;
           margin: 0;
-          padding: 20px;
-          background: #fff;
+          padding: 0;
+          background: #f1f5f9;
           font-size: 13px;
-          line-height: 1.4;
+          line-height: 1.35;
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          min-height: 100vh;
+        }
+
+        .waybill-page {
+          width: 210mm;
+          height: 297mm;
+          padding: 15mm 20mm;
+          background: #fff;
           box-sizing: border-box;
           position: relative;
-          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          page-break-inside: avoid;
+          break-inside: avoid;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
         }
 
         /* Kazakh ornament background watermark */
@@ -199,8 +215,8 @@ export async function printWaybill(shipment: any) {
           justify-content: space-between;
           align-items: center;
           border-bottom: 2px solid #0f172a;
-          padding-bottom: 12px;
-          margin-bottom: 16px;
+          padding-bottom: 10px;
+          margin-bottom: 12px;
         }
 
         .logo-area {
@@ -263,9 +279,9 @@ export async function printWaybill(shipment: any) {
           background: #f8fafc;
           border: 1px solid #cbd5e1;
           border-radius: 8px;
-          padding: 8px 16px;
-          margin-bottom: 16px;
-          font-size: 15px;
+          padding: 6px 16px;
+          margin-bottom: 12px;
+          font-size: 14px;
           font-weight: 700;
           text-transform: uppercase;
         }
@@ -279,14 +295,14 @@ export async function printWaybill(shipment: any) {
         .info-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 16px;
+          gap: 12px;
+          margin-bottom: 12px;
         }
 
         .info-card {
-          border: 1px solid #94a3b8;
+          border: 1px solid #cbd5e1;
           border-radius: 6px;
-          padding: 10px 12px;
+          padding: 8px 12px;
           background: rgba(255, 255, 255, 0.9);
         }
 
@@ -324,7 +340,7 @@ export async function printWaybill(shipment: any) {
         table.details-table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
           background: rgba(255, 255, 255, 0.95);
         }
 
@@ -334,19 +350,19 @@ export async function printWaybill(shipment: any) {
           font-weight: 700;
           text-transform: uppercase;
           font-size: 11px;
-          padding: 6px 10px;
+          padding: 5px 8px;
           border: 1px solid #1e3a8a;
           text-align: left;
         }
 
         table.details-table td {
           border: 1px solid #cbd5e1;
-          padding: 6px 10px;
+          padding: 5px 8px;
         }
 
         /* Cost Table */
         .pricing-section {
-          margin-bottom: 20px;
+          margin-bottom: 12px;
         }
 
         .pricing-title {
@@ -364,7 +380,7 @@ export async function printWaybill(shipment: any) {
 
         table.pricing-table th, table.pricing-table td {
           border: 1px solid #cbd5e1;
-          padding: 6px 10px;
+          padding: 5px 8px;
         }
 
         table.pricing-table th {
@@ -391,14 +407,14 @@ export async function printWaybill(shipment: any) {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 40px;
-          margin-top: 40px;
-          padding-top: 16px;
-          border-top: 1px dashed #94a3b8;
+          margin-top: 24px;
+          padding-top: 12px;
+          border-top: 1px dashed #cbd5e1;
         }
 
         .signature-line {
           border-bottom: 1px solid #0f172a;
-          height: 32px;
+          height: 28px;
           margin-bottom: 4px;
         }
 
@@ -410,31 +426,38 @@ export async function printWaybill(shipment: any) {
 
         /* Footer notice */
         .footer-notice {
-          margin-top: 30px;
+          margin-top: 15px;
           font-size: 9px;
           color: #64748b;
           text-align: center;
-          border-top: 1px solid #e2e8f0;
-          padding-top: 8px;
+          border-top: 1px solid #cbd5e1;
+          padding-top: 6px;
         }
 
         @media print {
           body {
-            padding: 10px;
+            margin: 0;
+            padding: 0;
+            background: #fff;
           }
-          .no-print {
-            display: none;
+          .waybill-page {
+            width: 210mm;
+            height: 297mm;
+            padding: 15mm 20mm;
+            border: none;
+            box-shadow: none;
           }
           @page {
-            margin: 10mm;
+            margin: 0;
             size: A4 portrait;
           }
         }
       </style>
     </head>
     <body>
-      <!-- Kazakh ornament watermark background -->
-      <div class="watermark-container">
+      <div class="waybill-page">
+        <!-- Kazakh ornament watermark background -->
+        <div class="watermark-container">
         <svg class="watermark-svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg">
           <!-- Traditional Kazakh ornament paths (symmetrical ram horns) -->
           <path d="M 50,12 C 32,12 20,24 20,36 C 20,50 44,55 44,68 C 44,76 36,82 28,82 C 18,82 14,75 14,68 C 14,60 21,54 28,54 C 33,54 37,58 37,63 C 37,68 31,71 28,71 C 25,71 23,68 23,64 C 23,59 33,59 33,64 C 33,70 22,75 16,70 C 10,65 7,49 16,38 C 25,27 38,22 50,22 C 62,22 75,27 84,38 C 93,49 90,65 84,70 C 78,75 67,70 67,64 C 67,59 77,59 77,64 C 77,68 75,71 72,71 C 69,71 63,68 63,63 C 63,58 67,54 72,54 C 79,54 86,60 86,68 C 86,75 82,82 72,82 C 64,82 56,76 56,68 C 56,55 80,50 80,36 C 80,24 68,12 50,12 Z" />
@@ -596,6 +619,7 @@ export async function printWaybill(shipment: any) {
       <div class="footer-notice">
         Благодарим за то, что выбрали наш сервис! Распечатано автоматически из информационной системы CargoTrans.
       </div>
+      </div> <!-- End of .waybill-page -->
 
       <script>
         window.onload = function() {
