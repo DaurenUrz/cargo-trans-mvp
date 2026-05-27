@@ -112,14 +112,20 @@ export async function printWaybill(shipment: any) {
   const finalCost = Math.round((subtotal - ticketDiscount) + WAYBILL_FEE + doorToDoorCost);
 
   // 3. Format Date
-  const createdDate = shipment.created_at || shipment.createdAt || shipment.date || new Date().toISOString();
-  const formattedDate = new Date(createdDate).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const createdDate = shipment.created_at || shipment.createdAt || shipment.date;
+  let formattedDate = '';
+  if (createdDate) {
+    const parsedDate = new Date(createdDate);
+    if (!isNaN(parsedDate.getTime())) {
+      formattedDate = parsedDate.toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+  }
 
   const shipmentNumber = shipment.shipment_number || shipment.shipmentNumber || '—';
   const senderPhone = shipment.sender_phone || shipment.door_to_door_phone || shipment.clientPhone || '—';
