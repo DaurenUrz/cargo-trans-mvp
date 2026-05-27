@@ -19,6 +19,8 @@ var routeTariffs = map[string]routeTariff{
 	"астана нұрлы жол-алматы-2": {TransportRate: 971.0625, DeclaredValueFee: 84},
 	"алматы-2-қарағанды":       {TransportRate: 819, DeclaredValueFee: 68},
 	"қарағанды-алматы-2":       {TransportRate: 819, DeclaredValueFee: 68},
+	"астана нұрлы жол-қарағанды": {TransportRate: 287, DeclaredValueFee: 16},
+	"қарағанды-астана нұрлы жол": {TransportRate: 287, DeclaredValueFee: 16},
 }
 
 // Накладная — фиксированный сбор за распечатывание (₸)

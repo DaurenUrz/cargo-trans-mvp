@@ -16,6 +16,8 @@ export const ROUTE_TARIFFS: Record<string, RouteTariff> = {
   'астана нұрлы жол-алматы-2': { transportRate: 971.0625, declaredValueFee: 84 },
   'алматы-2-қарағанды':       { transportRate: 819, declaredValueFee: 68 },
   'қарағанды-алматы-2':       { transportRate: 819, declaredValueFee: 68 },
+  'астана нұрлы жол-қарағанды': { transportRate: 287, declaredValueFee: 16 },
+  'қарағанды-астана нұрлы жол': { transportRate: 287, declaredValueFee: 16 },
 };
 
 /** Fallback тариф для нераспознанных маршрутов (9769 за 100кг = 976.9 за 10кг) */

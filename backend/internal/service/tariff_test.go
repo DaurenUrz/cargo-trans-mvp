@@ -85,6 +85,16 @@ func TestCalculateCostByTariff(t *testing.T) {
 			isIndividual: true,
 			expectedCost: 1813,
 		},
+		{
+			name:         "New Route: Astana to Karaganda 10kg",
+			from:         "Астана Нұрлы Жол",
+			to:           "Қарағанды",
+			weight:       "10",
+			description:  "Normal",
+			isDoorToDoor: false,
+			isIndividual: true,
+			expectedCost: 410,
+		},
 	}
 
 	for _, tt := range tests {
