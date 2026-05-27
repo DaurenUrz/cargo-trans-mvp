@@ -2,6 +2,7 @@ import { X, Package, MapPin, User, Printer, Download } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { withApiBase } from '../lib/api-base';
+import { printWaybill } from '../lib/waybill-printer';
 
 interface ActiveShipmentDetailsProps {
   shipment: {
@@ -299,10 +300,21 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
 
       {/* Action Buttons */}
       <div className={`mt-8 flex flex-col sm:flex-row gap-4`}>
-        <button className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${isDark
+        <button
+          onClick={() => {
+            const sh = {
+              ...shipment,
+              from_station: shipment.from,
+              to_station: shipment.to,
+              created_at: shipment.date
+            };
+            printWaybill(sh);
+          }}
+          className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${isDark
             ? 'bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 border border-blue-800'
             : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
-          }`}>
+          }`}
+        >
           <Download className="w-5 h-5" />
           {t('downloadWaybill')}
         </button>
