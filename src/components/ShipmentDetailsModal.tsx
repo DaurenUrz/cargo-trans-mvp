@@ -42,19 +42,20 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
   };
 
   const handlePrint = () => {
-    const qrContainer = document.getElementById('qr-code-container');
-    const qrSvg = qrContainer?.innerHTML || '';
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${shipment.shipment_number}-${placeNum}`;
+        const stickerCode = `${shipment.shipment_number}-${placeNum}-${totalPlaces}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${stickerCode}`;
         return `
           <section class="label">
             <div class="header">CargoTrans</div>
             <div class="shipment-id">${stickerCode}</div>
-            <div class="qr-container">${qrSvg}</div>
+            <div class="qr-container">
+              <img src="${qrUrl}" style="width:28mm;height:28mm;" />
+            </div>
             <div class="info" style="text-align:center;border-bottom:2px solid black;padding-bottom:5px;margin-bottom:5px;">
               ${shipment.from} -> ${shipment.to}
             </div>
@@ -70,14 +71,14 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
           .header{text-align:center;font-weight:bold;font-size:20px;margin-bottom:4px;text-transform:uppercase;}
           .shipment-id{text-align:center;font-size:18px;font-weight:bold;margin:4px 0;}
           .qr-container{display:flex;justify-content:center;margin:10px 0;width:100%;}
-          .qr-container svg{width:50%!important;height:auto!important;max-width:200px;}
+          .qr-container img{width:28mm!important;height:28mm!important;max-width:200px;}
           .info{font-size:14px;font-weight:bold;margin-bottom:6px;width:100%;}
           .row{display:flex;justify-content:space-between;margin-bottom:4px;width:100%;}
           @media print{@page{margin:0;size:auto;}body{margin:0;padding:0;}}
         </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 1000);
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 1500);
     }
   };
 

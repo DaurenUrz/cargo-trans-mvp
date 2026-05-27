@@ -213,20 +213,20 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }).catch(e => console.error('Failed to log print action:', e));
     }
 
-    const qrContainer = document.getElementById('qr-code-container');
-    const qrSvg = qrContainer?.innerHTML || '';
-
     const printWindow = window.open('', '_blank');
     if (printWindow && createdShipmentNumber) {
       const totalPlaces = Math.max(1, Number(shipmentData.quantityPlaces) || 1);
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${createdShipmentNumber}-${placeNum}`;
+        const stickerCode = `${createdShipmentNumber}-${placeNum}-${totalPlaces}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${stickerCode}`;
         return `
           <section class="label">
             <div class="header">CargoTrans</div>
             <div class="shipment-id">${stickerCode}</div>
-            <div class="qr-container">${qrSvg}</div>
+            <div class="qr-container">
+              <img src="${qrUrl}" style="width:28mm;height:28mm;" />
+            </div>
             <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
               ${shipmentData.fromStation} -> ${shipmentData.toStation}
             </div>
@@ -293,9 +293,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 margin: 10px 0;
                 width: 100%;
               }
-              .qr-container svg {
-                width: 50% !important;
-                height: auto !important;
+              .qr-container img {
+                width: 28mm !important;
+                height: 28mm !important;
                 max-width: 200px;
               }
               .info {
@@ -326,7 +326,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
-      }, 1000);
+      }, 1500);
     }
   };
 

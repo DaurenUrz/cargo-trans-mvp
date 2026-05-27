@@ -208,6 +208,17 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 }
 
 func (s *ShipmentService) Get(ctx context.Context, id string) (model.Shipment, error) {
+	// Strip suffix in format "-[place]-[total]" where place and total are digits
+	// e.g. "SH-123456-1-5" -> "SH-123456"
+	if parts := strings.Split(id, "-"); len(parts) >= 3 {
+		var place, total int
+		_, err1 := fmt.Sscanf(parts[len(parts)-2], "%d", &place)
+		_, err2 := fmt.Sscanf(parts[len(parts)-1], "%d", &total)
+		if err1 == nil && err2 == nil {
+			id = strings.Join(parts[:len(parts)-2], "-")
+		}
+	}
+
 	// Try UUID first
 	shipment, err := s.repo.GetShipmentByID(ctx, id)
 	if err == nil {
