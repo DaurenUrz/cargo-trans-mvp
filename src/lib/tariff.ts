@@ -12,8 +12,8 @@ interface RouteTariff {
 
 /** Тарифы по маршрутам. Ключ — "откуда-куда" в нижнем регистре. */
 export const ROUTE_TARIFFS: Record<string, RouteTariff> = {
-  'алматы-2-астана нұрлы жол': { transportRate: 971, declaredValueFee: 84 },
-  'астана нұрлы жол-алматы-2': { transportRate: 971, declaredValueFee: 84 },
+  'алматы-2-астана нұрлы жол': { transportRate: 971.0625, declaredValueFee: 84 },
+  'астана нұрлы жол-алматы-2': { transportRate: 971.0625, declaredValueFee: 84 },
   'алматы-2-қарағанды':       { transportRate: 819, declaredValueFee: 68 },
   'қарағанды-алматы-2':       { transportRate: 819, declaredValueFee: 68 },
 };

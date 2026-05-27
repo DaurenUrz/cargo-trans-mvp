@@ -15,8 +15,8 @@ type routeTariff struct {
 
 // Тарифы по маршрутам. Ключ — "откуда-куда" в нижнем регистре.
 var routeTariffs = map[string]routeTariff{
-	"алматы-2-астана нұрлы жол": {TransportRate: 971, DeclaredValueFee: 84},
-	"астана нұрлы жол-алматы-2": {TransportRate: 971, DeclaredValueFee: 84},
+	"алматы-2-астана нұрлы жол": {TransportRate: 971.0625, DeclaredValueFee: 84},
+	"астана нұрлы жол-алматы-2": {TransportRate: 971.0625, DeclaredValueFee: 84},
 	"алматы-2-қарағанды":       {TransportRate: 819, DeclaredValueFee: 68},
 	"қарағанды-алматы-2":       {TransportRate: 819, DeclaredValueFee: 68},
 }
