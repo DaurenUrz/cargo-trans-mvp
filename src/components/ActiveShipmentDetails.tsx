@@ -74,16 +74,16 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
       }).join('');
       printWindow.document.write(`<!DOCTYPE html><html><head><title>${t('printTitle') || 'Печать'} ${shipment.shipment_number}</title>
         <style>
-          body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:0;color:black;background:white;}
-          .label{page-break-inside:avoid;page-break-after:always;break-after:page;margin:0!important;padding:2px 0!important;box-sizing:border-box;}
+          body{font-family:'Courier New',monospace;margin:0;padding:0;color:black;background:white;width:100%;}
+          .label{page-break-inside:avoid;page-break-after:always;break-after:page;margin:0!important;padding:20px!important;box-sizing:border-box;width:100%;height:95vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
           .label:last-child{page-break-after:avoid;break-after:avoid;}
-          .header{text-align:center;font-weight:bold;font-size:14px;margin-bottom:2px;text-transform:uppercase;}
-          .shipment-id{text-align:center;font-size:13px;font-weight:bold;margin:2px 0;}
-          .qr-container{display:flex;justify-content:center;margin:3px 0;}
-          .qr-container svg{width:24mm!important;height:24mm!important;}
-          .info{font-size:11px;font-weight:bold;margin-bottom:3px;}
-          .row{display:flex;justify-content:space-between;margin-bottom:2px;}
-          @media print{@page{margin:0;size:58mm auto;}body{margin:0;padding:0;}}
+          .header{text-align:center;font-weight:bold;font-size:20px;margin-bottom:4px;text-transform:uppercase;}
+          .shipment-id{text-align:center;font-size:18px;font-weight:bold;margin:4px 0;}
+          .qr-container{display:flex;justify-content:center;margin:10px 0;width:100%;}
+          .qr-container svg{width:50%!important;height:auto!important;max-width:200px;}
+          .info{font-size:14px;font-weight:bold;margin-bottom:6px;width:100%;}
+          .row{display:flex;justify-content:space-between;margin-bottom:4px;width:100%;}
+          @media print{@page{margin:0;size:auto;}body{margin:0;padding:0;}}
         </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
