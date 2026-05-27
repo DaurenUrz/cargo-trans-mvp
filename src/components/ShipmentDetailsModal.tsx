@@ -49,7 +49,7 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
       const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${shipment.shipment_number}-${totalPlaces}`;
+        const stickerCode = `${shipment.shipment_number}-${placeNum}`;
         return `
           <section class="label">
             <div class="header">CargoTrans</div>
@@ -77,7 +77,7 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
         </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 1000);
     }
   };
 

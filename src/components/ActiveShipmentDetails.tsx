@@ -59,7 +59,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
       const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${shipment.shipment_number}-${totalPlaces}`;
+        const stickerCode = `${shipment.shipment_number}-${placeNum}`;
         return `
           <section class="label">
             <div class="header">CargoTrans</div>
@@ -87,7 +87,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
         </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+      setTimeout(() => { printWindow.print(); printWindow.close(); }, 1000);
     }
   };
 
@@ -101,8 +101,8 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className={`p-2.5 rounded-xl transition-colors ${isDark ? 'hover:bg-gray-800 text-gray-400 bg-gray-800/50' : 'hover:bg-gray-100 text-gray-600 bg-white shadow-sm border border-gray-100'}`}
           >
             <X className="w-5 h-5" />
@@ -123,11 +123,10 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
         </div>
         <button
           onClick={handlePrint}
-          className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-colors ${
-            isDark 
-              ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20' 
+          className={`flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-colors ${isDark
+              ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/20'
               : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20'
-          }`}
+            }`}
         >
           <Printer className="w-4 h-4" />
           {t('printLabels')}
@@ -204,7 +203,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
             <div className={card}>
               <h3 className={sectionTitle}>
                 <MapPin className={`w-5 h-5 ${isDark ? 'text-orange-400' : 'text-orange-600'}`} />
-              {t('doorToDoorAddresses')}
+                {t('doorToDoorAddresses')}
               </h3>
               <div className="space-y-4">
                 {shipment.pickup_address && (
@@ -282,19 +281,17 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
 
       {/* Action Buttons */}
       <div className={`mt-8 flex flex-col sm:flex-row gap-4`}>
-        <button className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${
-          isDark 
-            ? 'bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 border border-blue-800' 
+        <button className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${isDark
+            ? 'bg-blue-900/40 hover:bg-blue-900/60 text-blue-300 border border-blue-800'
             : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200'
-        }`}>
+          }`}>
           <Download className="w-5 h-5" />
           {t('downloadWaybill')}
         </button>
-        <button className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${
-          isDark 
-            ? 'bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800' 
+        <button className={`flex-1 flex justify-center items-center gap-2 py-4 rounded-xl font-medium transition-all ${isDark
+            ? 'bg-indigo-900/40 hover:bg-indigo-900/60 text-indigo-300 border border-indigo-800'
             : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200'
-        }`}>
+          }`}>
           <Download className="w-5 h-5" />
           {t('downloadSurrenderList')}
         </button>

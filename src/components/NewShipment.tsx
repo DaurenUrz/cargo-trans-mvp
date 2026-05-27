@@ -221,7 +221,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       const totalPlaces = Math.max(1, Number(shipmentData.quantityPlaces) || 1);
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${createdShipmentNumber}-${totalPlaces}`;
+        const stickerCode = `${createdShipmentNumber}-${placeNum}`;
         return `
           <section class="label">
             <div class="header">CargoTrans</div>
@@ -326,7 +326,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       setTimeout(() => {
         printWindow.print();
         printWindow.close();
-      }, 500);
+      }, 1000);
     }
   };
 
