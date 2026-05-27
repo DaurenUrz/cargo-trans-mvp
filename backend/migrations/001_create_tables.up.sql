@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS shipments (
 	shipment_number TEXT NOT NULL UNIQUE,
 	client_id TEXT NOT NULL,
 	client_name TEXT NOT NULL,
-	client_email TEXT NOT NULL,
+	client_login TEXT NOT NULL,
 	from_station TEXT NOT NULL,
 	to_station TEXT NOT NULL,
 	current_station TEXT NOT NULL,
