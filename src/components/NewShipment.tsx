@@ -141,6 +141,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
         alert(err.error || 'Ошибка при создании отправки');
+        setIsSubmitting(false);
         return;
       }
       const shipment = await createRes.json();
@@ -155,6 +156,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       if (!sendRes.ok) {
         const err = await sendRes.json().catch(() => ({}));
         alert(err.error || 'Ошибка при переводе в статус оплаты');
+        setIsSubmitting(false);
         return;
       }
 
@@ -171,6 +173,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       if (!payRes.ok) {
         const err = await payRes.json().catch(() => ({}));
         alert(err.error || 'Ошибка при создании платежа');
+        setIsSubmitting(false);
         return;
       }
       const payment = await payRes.json();
@@ -183,6 +186,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       if (!confirmRes.ok) {
         const err = await confirmRes.json().catch(() => ({}));
         alert(err.error || 'Ошибка при подтверждении оплаты');
+        setIsSubmitting(false);
         return;
       }
 
