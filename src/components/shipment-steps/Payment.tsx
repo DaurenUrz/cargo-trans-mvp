@@ -1,6 +1,6 @@
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { calculateShipmentCost } from '../../lib/tariff';
+import { getCostBreakdown } from '../../lib/tariff';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface PaymentProps {
@@ -17,13 +17,16 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   const { user } = useAuth();
   const isDark = theme === 'dark';
 
-  const pureBaseCost = Math.round((parseFloat(data.weight || '0') / 10) * 976.9);
+  const breakdown = getCostBreakdown({
+    fromStation: data.fromStation,
+    toStation: data.toStation,
+    weight: data.weight,
+    hasTicket: data.hasTicket,
+    isDoorToDoor: data.isDoorToDoor,
+    clientType: data.clientType
+  });
 
-  const total = calculateShipmentCost({
-    ...data,
-    isFragile: data.isFragile,
-    isOversized: data.isOversized
-  }) || 0;
+  const total = breakdown?.total || 0;
   const isLegal = data.clientType === 'legal';
   const isManagerFlow = user?.role === 'manager' || user?.role === 'admin';
   const paymentMethod = data.paymentMethod || 'cash';
@@ -43,28 +46,27 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
       <div className="space-y-6">
         {/* Cost breakdown */}
         <div className={`rounded-lg p-6 space-y-3 ${isDark ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-50'}`}>
-          <div className="flex justify-between text-sm">
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('baseTransportCost')}</span>
-            <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{pureBaseCost.toLocaleString()} ₸</span>
-          </div>
+          {breakdown && (
+            <>
+              <div className="flex justify-between text-sm">
+                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+                  {t('baseTransportCost')} ({breakdown.roundedWeight} кг = {breakdown.blocks} × 10 кг)
+                </span>
+                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{breakdown.transportCost.toLocaleString()} ₸</span>
+              </div>
 
-          <div className="flex justify-between text-sm">
-            <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Плата за распечатывание накладной</span>
-            <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 107 ₸</span>
-          </div>
+              {breakdown.declaredValueCost > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Объявленная ценность ({breakdown.blocks} × {breakdown.tariff.declaredValueFee} ₸)</span>
+                  <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ {breakdown.declaredValueCost.toLocaleString()} ₸</span>
+                </div>
+              )}
 
-          {data.isFragile && (
-            <div className="flex justify-between text-sm">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('fragileCargo')}</span>
-              <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 1 000 ₸</span>
-            </div>
-          )}
-
-          {data.isOversized && (
-            <div className="flex justify-between text-sm">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('oversizedCargo')}</span>
-              <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 2 500 ₸</span>
-            </div>
+              <div className="flex justify-between text-sm">
+                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Плата за распечатывание накладной</span>
+                <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ {breakdown.waybillFee} ₸</span>
+              </div>
+            </>
           )}
 
           {data.hasTicket && (

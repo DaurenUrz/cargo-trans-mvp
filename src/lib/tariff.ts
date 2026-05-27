@@ -1,37 +1,28 @@
 /**
  * Единый источник истины для тарификации грузов CargoTrans.
  * Используется во всех компонентах: CargoDetails, Payment, NewShipment.
- * Также синхронизирован с backend/internal/service/shipment_service.go → CalculateTariff()
+ * Также синхронизирован с backend/internal/service/tariff.go → calculateCostByTariff()
  */
 
-/** Ставка за 10 кг по маршруту (₸ / 10 кг) */
-export const ROUTE_RATES: Record<string, number> = {
-  'алматы-1-астана нұрлы жол': 976,
-  'астана нұрлы жол-алматы-1': 976,
-  'алматы-1-қарағанды': 825,
-  'қарағанды-алматы-1': 825,
-  'алматы-1-атырау': 1145,
-  'атырау-алматы-1': 1145,
-  'алматы-1-шымкент': 590,
-  'шымкент-алматы-1': 590,
-  'алматы-1-ақтөбе': 1114,
-  'ақтөбе-алматы-1': 1114,
-  'астана нұрлы жол-қарағанды': 400,
-  'қарағанды-астана нұрлы жол': 400,
-  'шымкент-қарағанды': 1200,
-  'қарағанды-шымкент': 1200,
-  'астана нұрлы жол-ақтөбе': 850,
-  'ақтөбе-астана нұрлы жол': 850,
+/** Компоненты тарифа для маршрута (за 10 кг) */
+interface RouteTariff {
+  transportRate: number;       // Тариф за перевозку (за 10 кг)
+  declaredValueFee: number;    // Объявленная ценность (за 10 кг)
+}
+
+/** Тарифы по маршрутам. Ключ — "откуда-куда" в нижнем регистре. */
+export const ROUTE_TARIFFS: Record<string, RouteTariff> = {
+  'алматы-2-астана нұрлы жол': { transportRate: 971, declaredValueFee: 84 },
+  'астана нұрлы жол-алматы-2': { transportRate: 971, declaredValueFee: 84 },
+  'алматы-2-қарағанды':       { transportRate: 819, declaredValueFee: 68 },
+  'қарағанды-алматы-2':       { transportRate: 819, declaredValueFee: 68 },
 };
 
-/** Fallback ставка для нераспознанных маршрутов */
-export const DEFAULT_RATE = 5000;
+/** Fallback тариф для нераспознанных маршрутов (9769 за 100кг = 976.9 за 10кг) */
+export const FALLBACK_TARIFF: RouteTariff = { transportRate: 976.9, declaredValueFee: 0 };
 
-/** Надбавка за хрупкость (₸) */
-export const FRAGILE_SURCHARGE = 1000;
-
-/** Надбавка за негабарит (₸) */
-export const OVERSIZED_SURCHARGE = 2500;
+/** Накладная — фиксированный сбор за распечатывание (₸) */
+export const WAYBILL_FEE = 107;
 
 /** Скидка при наличии ж/д билета */
 export const TICKET_DISCOUNT = 0.5;
@@ -40,48 +31,75 @@ export interface TariffParams {
   fromStation: string;
   toStation: string;
   weight: string | number;
-  isFragile?: boolean;
-  isOversized?: boolean;
   hasTicket?: boolean;
   isDoorToDoor?: boolean;
   clientType?: string;
 }
 
-export const WAYBILL_FEE = 107;
-
 /**
- * Возвращает ставку за 10 кг для данного маршрута.
+ * Возвращает тариф для маршрута.
  */
-export function getBaseRate(_from: string, _to: string): number {
-  return 976.9; // 9769 ₸ за 100 кг везде
+export function getRouteTariff(from: string, to: string): RouteTariff {
+  const key = `${from.trim().toLowerCase()}-${to.trim().toLowerCase()}`;
+  return ROUTE_TARIFFS[key] || FALLBACK_TARIFF;
 }
 
 /**
- * Рассчитывает итоговую стоимость перевозки.
- * Формула: (вес / 10) × ставка + надбавки, затем скидка по билету.
- * Плюс 107 ₸ за распечатывание накладной.
- * Возвращает null если данных недостаточно.
+ * Округляет вес вверх до ближайших 10 кг (минимум 10 кг).
  */
-export function calculateShipmentCost(params: TariffParams): number | null {
-  const { fromStation, toStation, weight, isFragile, isOversized, hasTicket, isDoorToDoor, clientType } = params;
+export function roundWeight(weight: number): number {
+  const rounded = Math.ceil(weight / 10) * 10;
+  return Math.max(rounded, 10);
+}
+
+/**
+ * Возвращает детализацию расчёта стоимости.
+ */
+export function getCostBreakdown(params: TariffParams) {
+  const { fromStation, toStation, weight, hasTicket, isDoorToDoor, clientType } = params;
 
   if (!fromStation || !toStation || !weight) return null;
 
   const weightNum = typeof weight === 'string' ? parseFloat(weight) : weight;
   if (isNaN(weightNum) || weightNum <= 0) return null;
 
-  const rate = getBaseRate(fromStation, toStation);
-  let cost = (weightNum / 10) * rate;
+  const roundedWeight = roundWeight(weightNum);
+  const blocks = roundedWeight / 10;
+  const tariff = getRouteTariff(fromStation, toStation);
 
-  if (isFragile) cost += FRAGILE_SURCHARGE;
-  if (isOversized) cost += OVERSIZED_SURCHARGE;
-  if (hasTicket) cost *= TICKET_DISCOUNT;
+  const transportCost = blocks * tariff.transportRate;
+  const declaredValueCost = blocks * tariff.declaredValueFee;
+  let subtotal = transportCost + declaredValueCost;
+
+  if (hasTicket) subtotal *= TICKET_DISCOUNT;
+
+  let doorToDoorCost = 0;
   if (isDoorToDoor && clientType !== 'legal') {
-    cost += 10000;
+    doorToDoorCost = 10000;
   }
 
-  // Добавляем плату за распечатывание накладной
-  cost += WAYBILL_FEE;
+  const total = Math.round(subtotal + doorToDoorCost + WAYBILL_FEE);
 
-  return Math.round(cost);
+  return {
+    weightNum,
+    roundedWeight,
+    blocks,
+    tariff,
+    transportCost: Math.round(transportCost),
+    declaredValueCost: Math.round(declaredValueCost),
+    doorToDoorCost,
+    waybillFee: WAYBILL_FEE,
+    hasTicketDiscount: !!hasTicket,
+    total,
+  };
+}
+
+/**
+ * Рассчитывает итоговую стоимость перевозки.
+ * Формула: ceil(вес/10) × (перевозка + обьявл.ценность) + накладная + надбавки
+ * Возвращает null если данных недостаточно.
+ */
+export function calculateShipmentCost(params: TariffParams): number | null {
+  const breakdown = getCostBreakdown(params);
+  return breakdown ? breakdown.total : null;
 }

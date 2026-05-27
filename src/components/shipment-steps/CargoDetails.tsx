@@ -1,6 +1,6 @@
 import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { calculateShipmentCost } from '../../lib/tariff';
+import { getCostBreakdown } from '../../lib/tariff';
 import { useMemo } from 'react';
 
 interface CargoDetailsProps {
@@ -15,15 +15,15 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
   const { t } = useLanguage();
   const isDark = theme === 'dark';
 
-  const price = useMemo(() => calculateShipmentCost({
+  const breakdown = useMemo(() => getCostBreakdown({
     fromStation: data.fromStation,
     toStation: data.toStation,
     weight: data.weight,
-    isFragile: data.isFragile,
-    isOversized: data.isOversized,
     isDoorToDoor: data.isDoorToDoor,
     clientType: data.clientType
-  }), [data.fromStation, data.toStation, data.weight, data.isFragile, data.isOversized, data.isDoorToDoor, data.clientType]);
+  }), [data.fromStation, data.toStation, data.weight, data.isDoorToDoor, data.clientType]);
+
+  const price = breakdown?.total ?? null;
 
   const weightNum = parseFloat(data.weight || '0');
   const isOverweight = data.isDoorToDoor && weightNum > 50;
@@ -109,42 +109,23 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
         </div>
 
         {/* Стоимость доставки */}
-        {price !== null && (
+        {breakdown && price !== null && (
           <div className={`rounded-lg border p-4 ${isDark ? 'bg-blue-900/20 border-blue-800/50' : 'bg-blue-50 border-blue-200'}`}>
             <div className="flex justify-between items-center mb-1">
               <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('transportCost')}:</span>
               <span className={`text-2xl font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{price.toLocaleString()} ₸</span>
             </div>
-            <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} text-right font-medium`}>
-              (+107 ₸ плата за распечатывание накладной)
+            <div className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'} text-right space-y-0.5`}>
+              <div>Перевозка: {breakdown.transportCost.toLocaleString()} ₸ ({breakdown.roundedWeight} кг)</div>
+              {breakdown.declaredValueCost > 0 && (
+                <div>Объявленная ценность: +{breakdown.declaredValueCost.toLocaleString()} ₸</div>
+              )}
+              <div className="font-medium">+{breakdown.waybillFee} ₸ плата за распечатывание накладной</div>
             </div>
           </div>
         )}
 
-        {/* Хрупкость / Негабарит */}
-        <div>
-          <label className={label}>{t('cargoValue')}</label>
-          <div className="flex gap-4">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={data.isFragile}
-                onChange={(e) => onUpdate({ isFragile: e.target.checked })}
-                className="w-4 h-4 text-blue-600 rounded"
-              />
-              <span className={checkLabel}>{t('fragile')}</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={data.isOversized}
-                onChange={(e) => onUpdate({ isOversized: e.target.checked })}
-                className="w-4 h-4 text-blue-600 rounded"
-              />
-              <span className={checkLabel}>{t('oversized')}</span>
-            </label>
-          </div>
-        </div>
+
 
         {/* Упаковка */}
         <div>

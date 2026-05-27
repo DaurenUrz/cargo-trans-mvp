@@ -80,9 +80,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       fromStation: shipmentData.fromStation,
       toStation: shipmentData.toStation,
       weight: shipmentData.weight,
-      isFragile: shipmentData.isFragile,
-      isOversized: shipmentData.isOversized,
-      hasTicket: false, // Currently not asked on single page form, left default
+      hasTicket: false,
       isDoorToDoor: shipmentData.isDoorToDoor,
       clientType: shipmentData.clientType
     }) || 0;
@@ -125,7 +123,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           departure_date: new Date().toISOString(),
           weight: shipmentData.weight,
           dimensions: '',
-          description: `${shipmentData.description}${shipmentData.isFragile ? ' [Хрупкий]' : ''}${shipmentData.isOversized ? ' [Негабаритный]' : ''}`,
+          description: shipmentData.description,
           value: shipmentData.value,
           cost: calculateCost(),
           quantity_places: shipmentData.quantityPlaces || 1,

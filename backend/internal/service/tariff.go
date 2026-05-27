@@ -7,61 +7,58 @@ import (
 	"strings"
 )
 
-var routeRates = map[string]float64{
-	"алматы-1-астана нұрлы жол": 976,
-	"астана нұрлы жол-алматы-1": 976,
-	"алматы-1-қарағанды":      825,
-	"қарағанды-алматы-1":      825,
-	"алматы-1-атырау":         1145,
-	"атырау-алматы-1":         1145,
-	"алматы-1-шымкент":        590,
-	"шымкент-алматы-1":        590,
-	"алматы-1-ақтөбе":         1114,
-	"ақтөбе-алматы-1":         1114,
-	"астана нұрлы жол-қарағанды": 400,
-	"қарағанды-астана нұрлы жол": 400,
-	"шымкент-қарағанды":       1200,
-	"қарағанды-шымкент":       1200,
-	"астана нұрлы жол-ақтөбе": 850,
-	"ақтөбе-астана нұрлы жол": 850,
+// routeTariff содержит компоненты тарифа для маршрута (за 10 кг)
+type routeTariff struct {
+	TransportRate    float64 // Тариф за перевозку (за 10 кг)
+	DeclaredValueFee float64 // Объявленная ценность (за 10 кг)
 }
 
-func getBaseRate(from, to string) float64 {
-	return 976.9 // Flat rate per 10kg everywhere (9769 per 100kg)
+// Тарифы по маршрутам. Ключ — "откуда-куда" в нижнем регистре.
+var routeTariffs = map[string]routeTariff{
+	"алматы-2-астана нұрлы жол": {TransportRate: 971, DeclaredValueFee: 84},
+	"астана нұрлы жол-алматы-2": {TransportRate: 971, DeclaredValueFee: 84},
+	"алматы-2-қарағанды":       {TransportRate: 819, DeclaredValueFee: 68},
+	"қарағанды-алматы-2":       {TransportRate: 819, DeclaredValueFee: 68},
 }
+
+// Накладная — фиксированный сбор за распечатывание (₸)
+const waybillFee = 107
 
 func calculateCostByTariff(fromStation, toStation string, weightStr string, description string, isDoorToDoor bool, isIndividual bool) float64 {
 	if fromStation == "" || toStation == "" || weightStr == "" {
 		return 0
 	}
-	
+
 	var weight float64
 	_, err := fmt.Sscanf(weightStr, "%f", &weight)
 	if err != nil || weight <= 0 {
 		return 0
 	}
 
-	rate := getBaseRate(fromStation, toStation)
-	cost := (weight / 10.0) * rate
+	// Округляем вес вверх до ближайших 10 кг (минимум 10 кг)
+	roundedWeight := math.Ceil(weight/10.0) * 10
+	if roundedWeight < 10 {
+		roundedWeight = 10
+	}
+	blocks := roundedWeight / 10
 
-	descLower := strings.ToLower(description)
-	isFragile := strings.Contains(descLower, "хрупк") || strings.Contains(descLower, "fragile")
-	isOversized := strings.Contains(descLower, "негабарит") || strings.Contains(descLower, "oversize")
-	
-	if isFragile {
-		cost += 1000
+	// Ищем тариф по маршруту
+	routeKey := strings.TrimSpace(strings.ToLower(fromStation)) + "-" + strings.TrimSpace(strings.ToLower(toStation))
+	tariff, found := routeTariffs[routeKey]
+	if !found {
+		// Если маршрут не найден — fallback на старую логику (9769 за 100кг = 976.9 за 10кг)
+		tariff = routeTariff{TransportRate: 976.9, DeclaredValueFee: 0}
 	}
-	if isOversized {
-		cost += 2500
-	}
-	
+
+	cost := blocks * (tariff.TransportRate + tariff.DeclaredValueFee)
+
 	// +10 000 тг для door-to-door от физлица (Фаза 5, status_logic.md)
 	if isDoorToDoor && isIndividual {
 		cost += 10000
 	}
 
 	// +107 тг за распечатывание накладной
-	cost += 107
+	cost += float64(waybillFee)
 
 	return math.Round(cost)
 }
