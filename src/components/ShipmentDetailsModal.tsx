@@ -65,14 +65,14 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
       printWindow.document.write(`<!DOCTYPE html><html><head><title>Печать ${shipment.shipment_number}</title>
         <style>
           body{font-family:'Courier New',monospace;width:58mm;margin:0;padding:0;color:black;background:white;}
-          .label{page-break-inside:avoid;page-break-after:always;break-after:page;margin:0!important;padding:4px 0!important;box-sizing:border-box;}
+          .label{page-break-inside:avoid;page-break-after:always;break-after:page;margin:0!important;padding:2px 0!important;box-sizing:border-box;}
           .label:last-child{page-break-after:avoid;break-after:avoid;}
-          .header{text-align:center;font-weight:bold;font-size:18px;margin-bottom:3px;text-transform:uppercase;}
-          .shipment-id{text-align:center;font-size:16px;font-weight:bold;margin:3px 0;}
-          .qr-container{display:flex;justify-content:center;margin:6px 0;}
-          .qr-container svg{width:35mm!important;height:35mm!important;}
-          .info{font-size:13px;font-weight:bold;margin-bottom:4px;}
-          .row{display:flex;justify-content:space-between;margin-bottom:3px;}
+          .header{text-align:center;font-weight:bold;font-size:14px;margin-bottom:2px;text-transform:uppercase;}
+          .shipment-id{text-align:center;font-size:13px;font-weight:bold;margin:2px 0;}
+          .qr-container{display:flex;justify-content:center;margin:3px 0;}
+          .qr-container svg{width:24mm!important;height:24mm!important;}
+          .info{font-size:11px;font-weight:bold;margin-bottom:3px;}
+          .row{display:flex;justify-content:space-between;margin-bottom:2px;}
           @media print{@page{margin:0;size:58mm auto;}body{margin:0;padding:0;}}
         </style></head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();

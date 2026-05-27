@@ -260,7 +260,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 page-break-after: always;
                 break-after: page;
                 margin: 0 !important;
-                padding: 4px 0 !important;
+                padding: 2px 0 !important;
                 box-sizing: border-box;
               }
               .label:last-child {
@@ -270,34 +270,34 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               .header {
                 text-align: center;
                 font-weight: bold;
-                font-size: 18px;
-                margin-bottom: 3px;
+                font-size: 14px;
+                margin-bottom: 2px;
                 text-transform: uppercase;
               }
               .shipment-id {
                 text-align: center;
-                font-size: 16px;
+                font-size: 13px;
                 font-weight: bold;
-                margin: 3px 0;
+                margin: 2px 0;
               }
               .qr-container {
                 display: flex;
                 justify-content: center;
-                margin: 6px 0;
+                margin: 3px 0;
               }
               .qr-container svg {
-                width: 35mm !important;
-                height: 35mm !important;
+                width: 24mm !important;
+                height: 24mm !important;
               }
               .info {
-                font-size: 13px;
+                font-size: 11px;
                 font-weight: bold;
-                margin-bottom: 4px;
+                margin-bottom: 3px;
               }
               .row {
                 display: flex;
                 justify-content: space-between;
-                margin-bottom: 3px;
+                margin-bottom: 2px;
               }
               @media print {
                 @page { margin: 0; size: 58mm auto; }
