@@ -50,7 +50,7 @@ func calculateCostByTariff(fromStation, toStation string, weightStr string, desc
 		tariff = routeTariff{TransportRate: 976.9, DeclaredValueFee: 0}
 	}
 
-	cost := blocks * (tariff.TransportRate + tariff.DeclaredValueFee)
+	cost := (blocks * tariff.TransportRate) + tariff.DeclaredValueFee
 
 	// +10 000 тг для door-to-door от физлица (Фаза 5, status_logic.md)
 	if isDoorToDoor && isIndividual {

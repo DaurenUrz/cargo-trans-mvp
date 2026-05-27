@@ -68,7 +68,7 @@ export function getCostBreakdown(params: TariffParams) {
   const tariff = getRouteTariff(fromStation, toStation);
 
   const transportCost = blocks * tariff.transportRate;
-  const declaredValueCost = blocks * tariff.declaredValueFee;
+  const declaredValueCost = tariff.declaredValueFee;
   let subtotal = transportCost + declaredValueCost;
 
   if (hasTicket) subtotal *= TICKET_DISCOUNT;

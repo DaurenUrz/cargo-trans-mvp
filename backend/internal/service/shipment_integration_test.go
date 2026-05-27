@@ -61,7 +61,7 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				ReceiverName: ptr("Test Receiver"),
 				ReceiverPhone: ptr("77777777777"),
 			},
-			expected: 11084,
+			expected: 11162,
 		},
 		{
 			name: "Corporate D2D No Surcharge",
@@ -76,7 +76,7 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				ReceiverName: ptr("Test Receiver"),
 				ReceiverPhone: ptr("77777777777"),
 			},
-			expected: 1084,
+			expected: 1162,
 		},
 		{
 			name: "Manager creating D2D for unknown client (treat as individual)",
@@ -92,7 +92,7 @@ func TestShipmentCreationScenarios(t *testing.T) {
 				ReceiverName: ptr("Test Receiver"),
 				ReceiverPhone: ptr("77777777777"),
 			},
-			expected: 11084,
+			expected: 11162,
 		},
 	}
 
