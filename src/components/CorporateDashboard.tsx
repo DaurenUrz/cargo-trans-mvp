@@ -1,4 +1,5 @@
 import { withApiBase } from "../lib/api-base";
+import { printWaybill } from '../lib/waybill-printer';
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -248,10 +249,25 @@ export function CorporateDashboard({ theme = 'light', onCreateShipment }: Corpor
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <button className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${isDark
-              ? 'border-gray-700 hover:bg-gray-700'
-              : 'border-gray-200 hover:bg-gray-50'
-              }`}>
+            <button
+              onClick={() => {
+                if (shipments && shipments.length > 0) {
+                  const sh = {
+                    ...shipments[0],
+                    from: shipments[0].from_station,
+                    to: shipments[0].to_station,
+                    date: shipments[0].created_at
+                  };
+                  printWaybill(sh);
+                } else {
+                  alert('У вас пока нет оформленных отправлений.');
+                }
+              }}
+              className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${isDark
+                ? 'border-gray-700 hover:bg-gray-700'
+                : 'border-gray-200 hover:bg-gray-50'
+              }`}
+            >
               <div className="flex items-center gap-3">
                 <FileText className="w-5 h-5 text-blue-600" />
                 <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{t('invoice')}</span>

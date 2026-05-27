@@ -1,6 +1,7 @@
-import { X, Package, MapPin, Calendar, Weight, User, Phone, Printer } from 'lucide-react';
+import { X, Package, MapPin, Calendar, Weight, User, Phone, Printer, FileText } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { QRCodeSVG } from 'qrcode.react';
+import { printWaybill } from '../lib/waybill-printer';
 
 interface ShipmentDetailsModalProps {
   shipment: {
@@ -300,7 +301,7 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
         </div>
 
         {/* Footer */}
-        <div className={`p-6 border-t sticky bottom-0 flex gap-3 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+        <div className={`p-6 border-t sticky bottom-0 flex flex-col sm:flex-row gap-3 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
           <button
             onClick={handlePrint}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
@@ -308,7 +309,16 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
             }`}
           >
             <Printer className="w-4 h-4" />
-            Распечатать чек
+            Печать стикеров
+          </button>
+          <button
+            onClick={() => printWaybill(shipment)}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
+              isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Печать накладной
           </button>
           <button
             onClick={onClose}

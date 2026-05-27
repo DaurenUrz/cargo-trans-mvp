@@ -1,4 +1,5 @@
 import { withApiBase } from '../lib/api-base';
+import { printWaybill } from '../lib/waybill-printer';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Archive, Search, Download, Calendar, MapPin, RefreshCw, Filter, Truck } from 'lucide-react';
@@ -35,7 +36,6 @@ export function ShipmentArchive({ theme = 'light' }: Props) {
   const [filterStation, setFilterStation] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedShipment, setSelectedShipment] = useState<any>(null);
 
   const fetchArchive = async () => {
@@ -66,30 +66,7 @@ export function ShipmentArchive({ theme = 'light' }: Props) {
 
   const handleDownloadInvoice = async (s: ArchivedShipment, e: React.MouseEvent) => {
     e.stopPropagation();
-    setDownloadingId(s.id);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(withApiBase(`/api/shipments/${s.id}/invoice`), {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `invoice-${s.shipment_number}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      } else {
-        alert('Не удалось скачать накладную');
-      }
-    } catch {
-      alert('Ошибка сети');
-    } finally {
-      setDownloadingId(null);
-    }
+    printWaybill(s);
   };
 
   const filtered = shipments.filter(s => {
@@ -249,12 +226,11 @@ export function ShipmentArchive({ theme = 'light' }: Props) {
                 </div>
                 <button
                   onClick={(e) => handleDownloadInvoice(s, e)}
-                  disabled={downloadingId === s.id}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border disabled:opacity-50 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
                     isDark ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  {downloadingId === s.id ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                  <Download className="w-3 h-3" />
                   Накладная
                 </button>
               </div>
