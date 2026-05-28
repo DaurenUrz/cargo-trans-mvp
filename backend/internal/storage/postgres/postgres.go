@@ -1074,13 +1074,8 @@ func (r *Repository) ConfirmPaymentTx(ctx context.Context, paymentID, confirmedB
 
 	oldStatus := shipment.ShipmentStatus
 	shipment.PaymentStatus = model.PaymentConfirmed
-	if shipment.IsDoorToDoor {
-		shipment.ShipmentStatus = model.ShipmentCreatedDoor
-		shipment.Status = "Заявка door-to-door создана"
-	} else {
-		shipment.ShipmentStatus = model.ShipmentCreated
-		shipment.Status = "Создан"
-	}
+	shipment.ShipmentStatus = model.ShipmentPaid
+	shipment.Status = "Оплачен"
 	shipment.LastUpdatedAt = now
 	shipment.UpdatedAt = now
 

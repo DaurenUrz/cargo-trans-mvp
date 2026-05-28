@@ -214,19 +214,8 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		if err != nil {
 			return model.Shipment{}, err
 		}
-
-		// Если посылку оформил сотрудник (менеджер/админ) — клиент физически
-		// на станции с грузом. Сразу переводим в READY_FOR_LOADING ("На складе").
-		// Для door-to-door не применяем — курьер ещё должен забрать груз.
-		if !req.IsDoorToDoor {
-			isStaff := req.CreatorRole != string(model.RoleIndividual) && req.CreatorRole != string(model.RoleCorporate) && req.CreatorRole != ""
-			if isStaff {
-				created, err = s.ReadyForLoading(ctx, created.ID, req.CreatedBy, req.CreatedByName)
-				if err != nil {
-					return model.Shipment{}, err
-				}
-			}
-		}
+		// Do not automatically transition staff-created shipments to READY_FOR_LOADING.
+		// They must be scanned by the receiving clerk first.
 	}
 
 	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{
