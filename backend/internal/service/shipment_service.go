@@ -881,21 +881,22 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 		if msg != "" {
 			// ОПРЕДЕЛЯЕМ КОМУ ОТПРАВЛЯТЬ
 			targetPhone := ""
-			if newStatus == model.ShipmentPickupAssigned {
+			switch newStatus {
+			case model.ShipmentPickupAssigned:
 				// Отправителю
 				if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
 					targetPhone = *s.DoorToDoorPhone
 				} else if s.SenderPhone != nil && *s.SenderPhone != "" {
 					targetPhone = *s.SenderPhone
 				}
-			} else if newStatus == model.ShipmentDeliveryAssigned || newStatus == model.ShipmentArrived || newStatus == model.ShipmentReadyForIssue || newStatus == model.ShipmentOutForDelivery {
+			case model.ShipmentDeliveryAssigned, model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentOutForDelivery:
 				// Получателю
 				if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
 					targetPhone = *s.ReceiverPhone
 				} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
 					targetPhone = *s.DoorToDoorPhone
 				}
-			} else {
+			default:
 				// По умолчанию (например, статус Создано или Выдано) — отправителю
 				if s.SenderPhone != nil && *s.SenderPhone != "" {
 					targetPhone = *s.SenderPhone

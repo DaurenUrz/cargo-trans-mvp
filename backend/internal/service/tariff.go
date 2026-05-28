@@ -27,6 +27,7 @@ var routeTariffs = map[string]routeTariff{
 const waybillFee = 107
 
 func calculateCostByTariff(fromStation, toStation string, weightStr string, description string, isDoorToDoor bool, isIndividual bool, hasTicket bool) float64 {
+	_ = description
 	if fromStation == "" || toStation == "" || weightStr == "" {
 		return 0
 	}
