@@ -24,6 +24,8 @@ interface Shipment {
   payment_required?: boolean;
   extra_charge?: number;
   client_role?: string;
+  client_id?: string;
+  created_by?: string;
 }
 
 export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
@@ -127,13 +129,22 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     !x.is_door_to_door && 
     x.from_station === myStation &&
     ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
+    // Ожидают привоза только те, которые клиент создал онлайн самостоятельно
+    (x.created_by === x.client_id || !x.created_by) &&
     matchSearch(x)
   ));
 
   // 3. «Активные»
   const activeShipmentsList = applySortAndFilter(s.filter(x => 
     x.from_station === myStation &&
-    ['AT_STATION_INTAKE', 'READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
+    (
+      ['AT_STATION_INTAKE', 'READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) ||
+      // Посылки, оформленные/оплаченные менеджером, которые физически уже в офисе
+      (
+        ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
+        x.created_by && x.created_by !== x.client_id
+      )
+    ) &&
     matchSearch(x)
   ));
 
@@ -395,8 +406,12 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       <span className="font-bold text-blue-600">{s.shipment_number}</span>
                       {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">Door-to-Door</span>}
                     </div>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-purple-100 text-purple-800">
-                      {s.shipment_status === 'AT_STATION_INTAKE' ? t('statusAtStation') : s.shipment_status === 'READY_FOR_LOADING' ? t('readyForLoading') : s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                      ['CREATED', 'CREATED_DOOR', 'PAYMENT_PENDING', 'PAID'].includes(s.shipment_status || s.status) 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {translateLifecycleStatus(s.shipment_status || s.status)}
                     </span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>
