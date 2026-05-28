@@ -343,11 +343,11 @@ func (r *Repository) CreateShipment(ctx context.Context, shipment model.Shipment
 }
 
 func (r *Repository) GetShipmentByID(ctx context.Context, id string) (model.Shipment, error) {
-	return scanShipment(r.pool.QueryRow(ctx, shipmentSelect+` WHERE id = $1`, id))
+	return scanShipment(r.pool.QueryRow(ctx, shipmentSelect+` WHERE s.id = $1`, id))
 }
 
 func (r *Repository) GetShipmentByTrackingCode(ctx context.Context, code string) (model.Shipment, error) {
-	return scanShipment(r.pool.QueryRow(ctx, shipmentSelect+` WHERE tracking_code = $1 OR shipment_number = $1`, code))
+	return scanShipment(r.pool.QueryRow(ctx, shipmentSelect+` WHERE s.tracking_code = $1 OR s.shipment_number = $1`, code))
 }
 
 func (r *Repository) ListShipments(ctx context.Context, filter model.ShipmentFilter) ([]model.Shipment, error) {
@@ -1025,11 +1025,23 @@ func (r *Repository) ConfirmPaymentTx(ctx context.Context, paymentID, confirmedB
 	}
 
 	var shipment model.Shipment
-	err = tx.QueryRow(ctx, "SELECT id, client_id, from_station, to_station, departure_date, weight, dimensions, description, value, cost, quantity_places, receiver_name, receiver_phone, shipment_status, payment_status, status, created_at, updated_at, last_updated_at, shipment_number, is_door_to_door, pickup_address, delivery_address FROM shipments WHERE id = $1 FOR UPDATE", payment.ShipmentID).
-		Scan(&shipment.ID, &shipment.ClientID, &shipment.FromStation, &shipment.ToStation, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.Status, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.LastUpdatedAt, &shipment.ShipmentNumber, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress)
+	var routeRaw []byte
+	var courierID string
+	err = tx.QueryRow(ctx, `
+		SELECT s.id, s.shipment_number, s.client_id, s.client_name, s.client_login, s.from_station, s.to_station, s.current_station, s.next_station, s.route, s.status, s.shipment_status, s.payment_status, s.departure_date, s.weight, s.dimensions, s.description, s.value, s.cost, s.quantity_places, s.receiver_name, s.receiver_phone, s.sender_phone, s.tracking_code, s.qr_code_id, s.transport_unit_id, COALESCE(s.courier_id, '') as courier_id, s.is_door_to_door, s.pickup_address, s.delivery_address, s.door_to_door_phone, s.payment_required, s.extra_charge, s.pickup_code, s.issue_code, s.has_ticket, COALESCE(s.ticket_number, '') as ticket_number, s.last_updated_at, s.created_by, s.created_at, s.updated_at, COALESCE(u.role, 'individual') as client_role 
+		FROM shipments s 
+		LEFT JOIN users u ON s.client_id = u.id 
+		WHERE s.id = $1 FOR UPDATE OF s`, payment.ShipmentID).
+		Scan(
+			&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.HasTicket, &shipment.TicketNumber, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.ClientRole,
+		)
 	if err != nil {
 		return model.Payment{}, model.Shipment{}, err
 	}
+	if courierID != "" {
+		shipment.CourierID = &courierID
+	}
+	_ = json.Unmarshal(routeRaw, &shipment.Route)
 
 	if shipment.PaymentStatus == model.PaymentConfirmed || shipment.ShipmentStatus == model.ShipmentPaid {
 		return model.Payment{}, model.Shipment{}, service.ErrInvalidTransition

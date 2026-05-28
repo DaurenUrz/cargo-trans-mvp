@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -24,6 +25,26 @@ func (s *Server) handleAdminCleanup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
+
+	var req struct {
+		ShipmentNumbers []string `json:"shipment_numbers"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&req)
+
+	if len(req.ShipmentNumbers) > 0 {
+		tag, err := s.pool.Exec(ctx, "DELETE FROM shipments WHERE shipment_number = ANY($1)", req.ShipmentNumbers)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"message":       fmt.Sprintf("Удалено указанных посылок: %d", tag.RowsAffected()),
+			"deleted_count": tag.RowsAffected(),
+			"cleaned_by":    fmt.Sprintf("%s (%s)", user.Name, user.Role),
+		})
+		return
+	}
+
 	results := []map[string]any{}
 
 	queries := []struct {
