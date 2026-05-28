@@ -21,48 +21,95 @@ interface NewShipmentProps {
 export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState<Step>('client');
+  const [currentStep, setCurrentStep] = useState<Step>(() => {
+    const savedStep = sessionStorage.getItem('pending_shipment_step');
+    if (savedStep && ['client', 'cargo', 'payment'].includes(savedStep)) {
+      return savedStep as Step;
+    }
+    return 'client';
+  });
 
   const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
   const [createdShipmentId, setCreatedShipmentId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [shipmentData, setShipmentData] = useState({
-    clientId: user?.id || '',
-    clientType: user?.role === 'corporate' ? 'legal' : 'individual',
-    clientName: (user?.role === 'individual' || user?.role === 'corporate') ? (user?.name || '') : '',
-    corporateClientId: '',
-    clientSource: user?.role === 'corporate' ? '' : 'direct',
-    clientPhone: '',
-    aggregatorClientId: '',
-    contractNumber: '',
-    hasDeposit: user?.role === 'corporate',
-    fromStation: '',
-    toStation: '',
-    weight: '',
-    isFragile: false,
-    isOversized: false,
-    packaging: '',
-    value: '',
-    quantityPlaces: 1,
-    description: '',
-    hasTicket: false,
-    ticketNumber: '',
-    receiverName: '',
-    receiverPhone: '',
-    paymentMethod: (user?.role === 'corporate' ? 'deposit' : 'cash') as 'cash' | 'card' | 'deposit',
-    clientDepositBalance: 0,
-    isDoorToDoor: user?.role === 'individual',
-    pickupAddress: '',
-    deliveryAddress: '',
-    doorToDoorPhone: '',
+  const [shipmentData, setShipmentData] = useState(() => {
+    const saved = sessionStorage.getItem('pending_shipment_data');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          clientId: user?.id || '',
+          clientType: user?.role === 'corporate' ? 'legal' : 'individual',
+          clientName: (user?.role === 'individual' || user?.role === 'corporate') ? (user?.name || '') : '',
+          corporateClientId: '',
+          clientSource: user?.role === 'corporate' ? '' : 'direct',
+          clientPhone: '',
+          aggregatorClientId: '',
+          contractNumber: '',
+          hasDeposit: user?.role === 'corporate',
+          fromStation: '',
+          toStation: '',
+          weight: '',
+          isFragile: false,
+          isOversized: false,
+          packaging: '',
+          value: '',
+          quantityPlaces: 1,
+          description: '',
+          hasTicket: false,
+          ticketNumber: '',
+          receiverName: '',
+          receiverPhone: '',
+          paymentMethod: (user?.role === 'corporate' ? 'deposit' : 'cash') as 'cash' | 'card' | 'deposit',
+          clientDepositBalance: 0,
+          isDoorToDoor: user?.role === 'individual',
+          pickupAddress: '',
+          deliveryAddress: '',
+          doorToDoorPhone: '',
+          ...parsed
+        };
+      } catch (e) {
+        console.error('Failed to parse pending shipment data', e);
+      }
+    }
+    return {
+      clientId: user?.id || '',
+      clientType: user?.role === 'corporate' ? 'legal' : 'individual',
+      clientName: (user?.role === 'individual' || user?.role === 'corporate') ? (user?.name || '') : '',
+      corporateClientId: '',
+      clientSource: user?.role === 'corporate' ? '' : 'direct',
+      clientPhone: '',
+      aggregatorClientId: '',
+      contractNumber: '',
+      hasDeposit: user?.role === 'corporate',
+      fromStation: '',
+      toStation: '',
+      weight: '',
+      isFragile: false,
+      isOversized: false,
+      packaging: '',
+      value: '',
+      quantityPlaces: 1,
+      description: '',
+      hasTicket: false,
+      ticketNumber: '',
+      receiverName: '',
+      receiverPhone: '',
+      paymentMethod: (user?.role === 'corporate' ? 'deposit' : 'cash') as 'cash' | 'card' | 'deposit',
+      clientDepositBalance: 0,
+      isDoorToDoor: user?.role === 'individual',
+      pickupAddress: '',
+      deliveryAddress: '',
+      doorToDoorPhone: '',
+    };
   });
 
   // Sync user data when auth loads
   useEffect(() => {
     if (user?.id) {
-      setShipmentData(prev => ({
+      setShipmentData((prev: typeof shipmentData) => ({
         ...prev,
-        clientId: user.id,
+        clientId: prev.clientId || user.id,
         clientName: prev.clientName || ((user.role === 'individual' || user.role === 'corporate') ? (user.name || '') : ''),
         clientPhone: prev.clientPhone || user.phone || '',
         isDoorToDoor: user.role === 'individual' ? true : prev.isDoorToDoor,
@@ -70,6 +117,18 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }));
     }
   }, [user?.id]);
+
+  // Persist shipmentData to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('pending_shipment_data', JSON.stringify(shipmentData));
+  }, [shipmentData]);
+
+  // Persist currentStep to sessionStorage
+  useEffect(() => {
+    if (currentStep !== 'documents') {
+      sessionStorage.setItem('pending_shipment_step', currentStep);
+    }
+  }, [currentStep]);
 
   const updateShipmentData = (data: Partial<typeof shipmentData>) => {
     setShipmentData({ ...shipmentData, ...data });
@@ -198,6 +257,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       });
 
 
+      sessionStorage.removeItem('pending_shipment_data');
+      sessionStorage.removeItem('pending_shipment_step');
       setCreatedShipmentNumber(shipment.shipment_number || shipmentId.substring(0, 8));
       setCreatedShipmentId(shipmentId);
       setCurrentStep('documents');
@@ -402,6 +463,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 </button>
                 <button
                   onClick={() => {
+                    sessionStorage.removeItem('pending_shipment_data');
+                    sessionStorage.removeItem('pending_shipment_step');
                     setCurrentStep('client');
 
                     setShipmentData({
