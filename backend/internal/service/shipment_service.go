@@ -78,6 +78,14 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	// Fetch client to determine role for door-to-door surcharge
 	client, _ := s.repo.GetUserByID(ctx, req.ClientID)
 	
+	// Менеджеры/админы не могут создавать посылки «от двери до двери»
+	if req.IsDoorToDoor {
+		switch model.Role(req.CreatorRole) {
+		case model.RoleManager, model.RoleAdmin:
+			return model.Shipment{}, fmt.Errorf("managers cannot create door-to-door shipments")
+		}
+	}
+
 	// Determine if surcharge applies: anything NOT explicitly corporate/legal (Фаза 5)
 	isIndividual := client.Role != model.RoleCorporate && req.ClientRole != string(model.RoleCorporate)
 
