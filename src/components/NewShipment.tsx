@@ -1,6 +1,6 @@
 import { withApiBase } from "../lib/api-base";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { calculateShipmentCost } from '../lib/tariff';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,6 +32,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   const [createdShipmentNumber, setCreatedShipmentNumber] = useState<string | null>(null);
   const [createdShipmentId, setCreatedShipmentId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [shipmentData, setShipmentData] = useState(() => {
     const saved = sessionStorage.getItem('pending_shipment_data');
     if (saved) {
@@ -152,7 +153,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     normalizeStation(shipmentData.fromStation) === normalizeStation(shipmentData.toStation);
 
   const handleCreateShipment = async () => {
-    if (isSubmitting) return; // prevent double submission
+    if (isSubmittingRef.current || isSubmitting) return; // prevent double submission
     if (sameFromTo) {
       alert(t('errorSameStation') || 'Пункты отправления и назначения не могут совпадать.');
       return;
@@ -161,6 +162,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       alert('Максимальный вес посылки — 50 кг');
       return;
     }
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
     const token = localStorage.getItem('token');
@@ -203,6 +205,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
         alert(err.error || 'Ошибка при создании отправки');
+        isSubmittingRef.current = false;
         setIsSubmitting(false);
         return;
       }
@@ -217,6 +220,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     } catch (error) {
       console.error('Failed to create shipment:', error);
       alert('Ошибка соединения с сервером');
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };

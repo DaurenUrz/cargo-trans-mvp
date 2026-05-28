@@ -133,6 +133,7 @@ type Shipment struct {
 	Status          string            `json:"status"`
 	ShipmentStatus  ShipmentLifecycle `json:"shipment_status"`
 	PaymentStatus   PaymentStatus     `json:"payment_status"`
+	ClientRole      string            `json:"client_role"`
 	DepartureDate   time.Time         `json:"departure_date"`
 	Weight          string            `json:"weight"`
 	Dimensions      string            `json:"dimensions"`

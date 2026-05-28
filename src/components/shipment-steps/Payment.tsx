@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCostBreakdown } from '../../lib/tariff';
@@ -16,6 +17,11 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   const { t } = useLanguage();
   const { user } = useAuth();
   const isDark = theme === 'dark';
+  const hasClickedRef = useRef(false);
+
+  if (!isSubmitting) {
+    hasClickedRef.current = false;
+  }
 
   const breakdown = getCostBreakdown({
     fromStation: data.fromStation,
@@ -180,10 +186,12 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
         {/* Pay button */}
         <button
           onClick={() => {
+            if (isSubmitting || hasClickedRef.current) return;
             if (isLegal && paymentMethod === 'deposit' && !canUseDeposit) {
               alert('Недостаточно средств на депозите для списания');
               return;
             }
+            hasClickedRef.current = true;
             onNext();
           }}
           className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400"

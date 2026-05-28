@@ -119,8 +119,14 @@ func TestPilotLifecycleFlow(t *testing.T) {
 	}
 
 	readyResp := performJSON(t, server.Router(), "POST", "/api/shipments/"+shipment.ID+"/ready-for-loading", map[string]any{}, operatorToken)
-	if readyResp.Code != http.StatusBadRequest {
-		t.Fatalf("expected bad request because already READY_FOR_LOADING, got %d", readyResp.Code)
+	if readyResp.Code != http.StatusOK {
+		t.Fatalf("expected OK for ready-for-loading, got %d", readyResp.Code)
+	}
+
+	// Redundant call should return bad request since it's already READY_FOR_LOADING
+	readyResp2 := performJSON(t, server.Router(), "POST", "/api/shipments/"+shipment.ID+"/ready-for-loading", map[string]any{}, operatorToken)
+	if readyResp2.Code != http.StatusBadRequest {
+		t.Fatalf("expected bad request because already READY_FOR_LOADING, got %d", readyResp2.Code)
 	}
 
 	loadResp := performJSON(t, server.Router(), "POST", "/api/shipments/"+shipment.ID+"/load", map[string]any{

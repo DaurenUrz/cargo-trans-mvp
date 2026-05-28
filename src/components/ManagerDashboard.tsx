@@ -23,6 +23,7 @@ interface Shipment {
   to_station: string;
   payment_required?: boolean;
   extra_charge?: number;
+  client_role?: string;
 }
 
 export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
@@ -375,7 +376,9 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                 <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
                   <div className="flex justify-between items-start mb-2">
                     <span className="font-bold text-blue-600">{s.shipment_number}</span>
-                    <span className="text-xs font-semibold px-2 py-1 rounded bg-yellow-100 text-yellow-800">{t('legalWaitingPickup')}</span>
+                    <span className="text-xs font-semibold px-2 py-1 rounded bg-yellow-100 text-yellow-800">
+                      {s.client_role === 'corporate' ? t('legalWaitingPickup') : t('waitingPickupStatus')}
+                    </span>
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>
                   <div className="text-xs text-gray-500 mb-2">{s.quantity_places} {t('pcs')} • {s.weight} {t('kg')}</div>
