@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { ArrowLeft, CreditCard } from 'lucide-react';
+import { ArrowLeft, CreditCard, Wallet } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCostBreakdown } from '../../lib/tariff';
 
@@ -32,11 +32,31 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
 
   const total = breakdown?.total || 0;
   const paymentMethod = data.paymentMethod || 'kaspi_qr';
+  const depositBalance = data.clientDepositBalance || 0;
+  const hasDeposit = data.hasDeposit === true;
+  const effectiveTotal = Number(data.actualAmount !== undefined && data.actualAmount !== '' ? data.actualAmount : total);
+  const depositInsufficient = paymentMethod === 'deposit' && depositBalance < effectiveTotal;
 
   const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
     isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'
   }`;
   const label = `block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`;
+
+  const paymentMethods: { id: string; label: string; subtitle?: string }[] = [
+    { id: 'kaspi_qr', label: 'Kaspi QR' },
+    { id: 'card', label: t('payMethodCard') },
+    { id: 'assignment', label: t('payMethodAssignment') },
+    { id: 'transfer', label: t('payMethodTransfer') }
+  ];
+
+  // Добавляем депозит если у клиента есть депозитная система
+  if (hasDeposit) {
+    paymentMethods.unshift({
+      id: 'deposit',
+      label: t('payFromDeposit'),
+      subtitle: `${t('depositAvailable')} ${depositBalance.toLocaleString()} ₸`
+    });
+  }
 
   return (
     <div className={`rounded-lg shadow-sm border p-8 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
@@ -49,20 +69,20 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
             <>
               <div className="flex justify-between text-sm">
                 <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                  {t('baseTransportCost')} ({breakdown.roundedWeight} кг = {breakdown.blocks} × 10 кг)
+                  {t('baseTransportCost')} ({breakdown.roundedWeight} {t('kg')} = {breakdown.blocks} × 10 {t('kg')})
                 </span>
                 <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>{breakdown.transportCost.toLocaleString()} ₸</span>
               </div>
 
               {breakdown.declaredValueCost > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Объявленная ценность ({breakdown.blocks} × {breakdown.tariff.declaredValueFee} ₸)</span>
+                  <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('declaredValueLine')} ({breakdown.blocks} × {breakdown.tariff.declaredValueFee} ₸)</span>
                   <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ {breakdown.declaredValueCost.toLocaleString()} ₸</span>
                 </div>
               )}
 
               <div className="flex justify-between text-sm">
-                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Плата за распечатывание накладной</span>
+                <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('waybillFeeLine')}</span>
                 <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ {breakdown.waybillFee} ₸</span>
               </div>
             </>
@@ -77,7 +97,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
 
           {data.isDoorToDoor && data.clientType === 'individual' && (
             <div className="flex justify-between text-sm">
-              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>Сервис от двери до двери</span>
+              <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('doorToDoorService')}</span>
               <span className={`font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>+ 10 000 ₸</span>
             </div>
           )}
@@ -88,73 +108,106 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
           </div>
         </div>
 
-        {/* Login */}
-        <div>
-          <label className={label}>{t('emailReceipt')}</label>
-          <input type="login" className={input} placeholder="example@mail.com" />
-        </div>
-
         {/* Способ оплаты */}
-        <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-          <label className={`block text-sm font-semibold mb-4 ${isDark ? 'text-gray-200' : 'text-gray-850'}`}>
-            Способ оплаты
+        <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-white'}`}>
+          <label className={`block text-sm font-semibold mb-4 ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+            {t('paymentMethodLabel')}
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { id: 'kaspi_qr', label: 'Kaspi QR' },
-              { id: 'card', label: 'Карта' },
-              { id: 'assignment', label: 'Поручение' },
-              { id: 'transfer', label: 'Перечисление (от предприятия по неосвоенной сумме)' }
-            ].map((method) => {
+            {paymentMethods.map((method) => {
               const isSelected = paymentMethod === method.id;
+              const isDeposit = method.id === 'deposit';
               return (
                 <button
                   key={method.id}
                   type="button"
                   onClick={() => onUpdate({ paymentMethod: method.id })}
                   className={`flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left ${
-                    isSelected
-                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                    isDeposit && isSelected && !depositInsufficient
+                      ? isDark
+                        ? 'border-green-500 bg-green-900/20 text-green-400'
+                        : 'border-green-600 bg-green-50/50 text-green-700'
+                      : isDeposit && isSelected && depositInsufficient
+                      ? isDark
+                        ? 'border-red-500 bg-red-900/20 text-red-400'
+                        : 'border-red-500 bg-red-50/50 text-red-700'
+                      : isSelected
+                      ? isDark
+                        ? 'border-blue-500 bg-blue-900/30 text-blue-400'
+                        : 'border-blue-600 bg-blue-50/50 text-blue-700'
                       : isDark
-                      ? 'border-gray-750 bg-gray-900 text-gray-300 hover:border-gray-600'
+                      ? 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                       : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300'
-                  }`}
+                  } ${isDeposit ? 'sm:col-span-2' : ''}`}
                 >
-                  <span className="font-semibold text-sm">{method.label}</span>
+                  <div className="flex items-center gap-2">
+                    {isDeposit && <Wallet className="w-4 h-4" />}
+                    <span className="font-semibold text-sm">{method.label}</span>
+                  </div>
+                  {method.subtitle && (
+                    <span className={`text-xs mt-1 ${
+                      isDeposit && isSelected && depositInsufficient
+                        ? 'text-red-500'
+                        : isDeposit && isSelected
+                        ? isDark ? 'text-green-400/70' : 'text-green-600'
+                        : isDark ? 'text-gray-400' : 'text-gray-500'
+                    }`}>
+                      {method.subtitle}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+
+          {/* Предупреждение о недостатке средств */}
+          {depositInsufficient && (
+            <p className="text-xs text-red-500 mt-3 flex items-center gap-1">
+              ⚠️ {t('insufficientDeposit')}
+            </p>
+          )}
         </div>
 
-        {/* Фактически принято оплаты */}
-        <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
-          <label className={label}>Фактически принято оплаты (₸)</label>
-          <input
-            type="number"
-            value={data.actualAmount !== undefined && data.actualAmount !== null ? data.actualAmount : ''}
-            onChange={(e) => onUpdate({ actualAmount: e.target.value })}
-            className={input}
-            placeholder={total.toString()}
-          />
-          <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            Укажите фактически принятую сумму оплаты, если расчет по тарифу неточен.
-          </p>
-        </div>
+        {/* Фактически принято оплаты — не для депозита */}
+        {paymentMethod !== 'deposit' && (
+          <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-white'}`}>
+            <label className={label}>{t('actualAmountLabel')}</label>
+            <input
+              type="number"
+              value={data.actualAmount !== undefined && data.actualAmount !== null ? data.actualAmount : ''}
+              onChange={(e) => onUpdate({ actualAmount: e.target.value })}
+              className={input}
+              placeholder={total.toString()}
+            />
+            <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {t('actualAmountHint')}
+            </p>
+          </div>
+        )}
 
         {/* Pay button */}
         <button
           onClick={() => {
-            if (isSubmitting || hasClickedRef.current) return;
+            if (isSubmitting || hasClickedRef.current || depositInsufficient) return;
             hasClickedRef.current = true;
             onNext();
           }}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-400"
-          disabled={isSubmitting}
+          className={`w-full flex items-center justify-center gap-2 px-6 py-4 text-white rounded-lg font-medium transition-colors ${
+            depositInsufficient
+              ? 'bg-gray-400 cursor-not-allowed'
+              : paymentMethod === 'deposit'
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-blue-600 hover:bg-blue-700'
+          } disabled:bg-gray-400`}
+          disabled={isSubmitting || depositInsufficient}
         >
-          <CreditCard className="w-5 h-5" />
-          {isSubmitting ? 'Обработка...' : t('payButton')}{' '}
-          {Number(data.actualAmount !== undefined && data.actualAmount !== '' ? data.actualAmount : total).toLocaleString()} ₸
+          {paymentMethod === 'deposit' ? <Wallet className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
+          {isSubmitting
+            ? t('processingPayment')
+            : paymentMethod === 'deposit'
+            ? t('payFromDeposit')
+            : t('payButton')}{' '}
+          {effectiveTotal.toLocaleString()} ₸
         </button>
 
         <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
