@@ -15,8 +15,8 @@ func (s *TrackingService) GenerateQRCode(ctx context.Context, shipmentID string)
 	if err != nil {
 		return model.QRCode{}, model.Shipment{}, err
 	}
-	if shipment.ShipmentStatus != model.ShipmentPaid && shipment.ShipmentStatus != model.ShipmentReadyForLoading {
-		return model.QRCode{}, model.Shipment{}, fmt.Errorf("%w: generate QR requires PAID or READY_FOR_LOADING, current=%s", ErrInvalidTransition, shipment.ShipmentStatus)
+	if shipment.ShipmentStatus != model.ShipmentCreated && shipment.ShipmentStatus != model.ShipmentCreatedDoor && shipment.ShipmentStatus != model.ShipmentPaid && shipment.ShipmentStatus != model.ShipmentReadyForLoading {
+		return model.QRCode{}, model.Shipment{}, fmt.Errorf("%w: generate QR requires CREATED, CREATED_DOOR, PAID or READY_FOR_LOADING, current=%s", ErrInvalidTransition, shipment.ShipmentStatus)
 	}
 	code := model.QRCode{
 		ID:          uuid.NewString(),
@@ -31,10 +31,8 @@ func (s *TrackingService) GenerateQRCode(ctx context.Context, shipmentID string)
 	}
 	shipment.QRCodeID = &code.ID
 	shipment.TrackingCode = &code.QRValue
-	if shipment.ShipmentStatus == model.ShipmentPaid && !shipment.IsDoorToDoor {
-		shipment.ShipmentStatus = model.ShipmentReadyForLoading
-		shipment.Status = legacyStatusForLifecycle(shipment.ShipmentStatus)
-	}
+	// Auto transition to READY_FOR_LOADING has been removed.
+	// Shipment status remains CREATED until physically scanned at the station warehouse.
 	shipment.LastUpdatedAt = time.Now().UTC()
 	shipment.UpdatedAt = shipment.LastUpdatedAt
 	shipment, err = s.repo.UpdateShipment(ctx, shipment)

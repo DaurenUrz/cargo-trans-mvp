@@ -83,7 +83,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleManager, model.RoleAdmin); err != nil {
+	if err := s.requireRole(user, model.RoleLoading, model.RoleTransit, model.RoleReceiver, model.RoleTrainReceiver, model.RoleManager, model.RoleAdmin); err != nil {
 		handleServiceError(w, err)
 		return
 	}
@@ -103,21 +103,30 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.CurrentStation == current.FromStation && (current.ShipmentStatus == model.ShipmentReadyForLoading || current.ShipmentStatus == model.ShipmentPaid) {
-		if current.ShipmentStatus == model.ShipmentPaid {
-			if _, err := s.services.Shipments.ReadyForLoading(r.Context(), current.ID, &user.ID, &user.Name); err != nil {
+	if req.CurrentStation == current.FromStation {
+		if current.ShipmentStatus == model.ShipmentCreated || current.ShipmentStatus == model.ShipmentCreatedDoor || current.ShipmentStatus == model.ShipmentPaid {
+			// Step 2: Station receiver scans it to warehouse -> READY_FOR_LOADING
+			shipment, err := s.services.Shipments.ReadyForLoading(r.Context(), current.ID, &user.ID, &user.Name)
+			if err != nil {
 				handleServiceError(w, err)
 				return
 			}
-		}
-		shipment, err := s.services.Shipments.Load(r.Context(), current.ID, &user.ID, &user.Name, &req.CurrentStation, nil)
-		if err != nil {
-			handleServiceError(w, err)
+			s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+			writeJSON(w, http.StatusOK, shipment)
 			return
 		}
-		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
-		writeJSON(w, http.StatusOK, shipment)
-		return
+
+		if current.ShipmentStatus == model.ShipmentReadyForLoading {
+			// Step 3: Train receiver scans it to train -> LOADED
+			shipment, err := s.services.Shipments.Load(r.Context(), current.ID, &user.ID, &user.Name, &req.CurrentStation, nil)
+			if err != nil {
+				handleServiceError(w, err)
+				return
+			}
+			s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+			writeJSON(w, http.StatusOK, shipment)
+			return
+		}
 	}
 
 	if req.CurrentStation == current.FromStation && current.ShipmentStatus == model.ShipmentLoaded {

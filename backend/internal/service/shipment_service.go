@@ -339,7 +339,7 @@ func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station st
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	if shipment.ShipmentStatus != model.ShipmentInTransit && shipment.ShipmentStatus != model.ShipmentLoaded {
+	if shipment.ShipmentStatus != model.ShipmentInTransit && shipment.ShipmentStatus != model.ShipmentLoaded && shipment.ShipmentStatus != model.ShipmentReadyForLoading && shipment.ShipmentStatus != model.ShipmentCreated && shipment.ShipmentStatus != model.ShipmentCreatedDoor && shipment.ShipmentStatus != model.ShipmentPaid {
 		return model.Shipment{}, ErrInvalidTransition
 	}
 	if station == shipment.ToStation {
@@ -846,14 +846,14 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 	allowed := map[model.ShipmentLifecycle][]model.ShipmentLifecycle{
 		model.ShipmentDraft:             {model.ShipmentCreated},
-		model.ShipmentCreatedDoor:       {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentCancelled},
+		model.ShipmentCreatedDoor:       {model.ShipmentPaymentPending, model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentCancelled, model.ShipmentArrived},
 		model.ShipmentPickupAssigned:    {model.ShipmentPickedUp, model.ShipmentCancelled},
 		model.ShipmentPickedUp:          {model.ShipmentAtStationIntake, model.ShipmentReadyForLoading, model.ShipmentCancelled},
 		model.ShipmentAtStationIntake:   {model.ShipmentReadyForLoading, model.ShipmentPaymentPending, model.ShipmentCancelled},
-		model.ShipmentCreated:           {model.ShipmentPaymentPending, model.ShipmentReadyForLoading, model.ShipmentCancelled},
-		model.ShipmentPaymentPending:    {model.ShipmentPaid, model.ShipmentCancelled},
-		model.ShipmentPaid:              {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold},
-		model.ShipmentReadyForLoading:   {model.ShipmentLoaded, model.ShipmentOnHold},
+		model.ShipmentCreated:           {model.ShipmentPaymentPending, model.ShipmentReadyForLoading, model.ShipmentCancelled, model.ShipmentArrived},
+		model.ShipmentPaymentPending:    {model.ShipmentPaid, model.ShipmentCancelled, model.ShipmentCreated, model.ShipmentCreatedDoor},
+		model.ShipmentPaid:              {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold, model.ShipmentArrived},
+		model.ShipmentReadyForLoading:   {model.ShipmentLoaded, model.ShipmentOnHold, model.ShipmentArrived},
 		model.ShipmentLoaded:            {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
 		model.ShipmentInTransit:         {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
 		model.ShipmentArrived:           {model.ShipmentReadyForIssue, model.ShipmentDamaged},
