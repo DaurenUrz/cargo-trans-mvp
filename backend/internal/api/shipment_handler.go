@@ -67,6 +67,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		SenderPhone     *string `json:"sender_phone"`
 		HasTicket       bool    `json:"has_ticket"`
 		TicketNumber    string  `json:"ticket_number"`
+		PaymentMethod   string  `json:"payment_method"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -117,6 +118,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		SenderPhone:     req.SenderPhone,
 		HasTicket:       req.HasTicket,
 		TicketNumber:    req.TicketNumber,
+		PaymentMethod:   req.PaymentMethod,
 	})
 	if err != nil {
 		handleServiceError(w, err)

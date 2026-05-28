@@ -41,6 +41,7 @@ type CreateShipmentRequest struct {
 	SenderPhone     *string
 	HasTicket       bool
 	TicketNumber    string
+	PaymentMethod   string
 }
 
 type CorrectionRequest struct {
@@ -149,6 +150,61 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	created, err := s.repo.CreateShipment(ctx, shipment)
 	if err != nil {
 		return model.Shipment{}, err
+	}
+
+	if req.PaymentMethod != "" {
+		// 1. Transition to PAYMENT_PENDING
+		created.ShipmentStatus = model.ShipmentPaymentPending
+		created.Status = legacyStatusForLifecycle(model.ShipmentPaymentPending)
+		created, err = s.repo.UpdateShipment(ctx, created)
+		if err != nil {
+			return model.Shipment{}, err
+		}
+
+		// 2. Create payment record
+		pay, err := s.repo.CreatePayment(ctx, model.Payment{
+			ID:            uuid.NewString(),
+			ShipmentID:    created.ID,
+			Amount:        created.Cost,
+			PaymentMethod: req.PaymentMethod,
+			Status:        model.PaymentPending,
+			CreatedAt:     time.Now().UTC(),
+		})
+		if err != nil {
+			return model.Shipment{}, err
+		}
+
+		// 3. Confirm payment
+		operatorID := ""
+		if req.CreatedBy != nil {
+			operatorID = *req.CreatedBy
+		}
+		_, confirmedShipment, err := s.repo.ConfirmPaymentTx(ctx, pay.ID, operatorID)
+		if err != nil {
+			return model.Shipment{}, err
+		}
+		created = confirmedShipment
+
+		// 4. Generate QR code
+		qrCode := model.QRCode{
+			ID:          uuid.NewString(),
+			ShipmentID:  created.ID,
+			QRValue:     created.ShipmentNumber,
+			GeneratedAt: time.Now().UTC(),
+			IsActive:    true,
+		}
+		qrCode, err = s.repo.CreateQRCode(ctx, qrCode)
+		if err != nil {
+			return model.Shipment{}, err
+		}
+		created.QRCodeID = &qrCode.ID
+		created.TrackingCode = &qrCode.QRValue
+		created.LastUpdatedAt = time.Now().UTC()
+		created.UpdatedAt = created.LastUpdatedAt
+		created, err = s.repo.UpdateShipment(ctx, created)
+		if err != nil {
+			return model.Shipment{}, err
+		}
 	}
 
 	_ = s.repo.AddShipmentHistory(ctx, model.ShipmentHistory{

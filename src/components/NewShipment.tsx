@@ -195,7 +195,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           door_to_door_phone: shipmentData.isDoorToDoor ? shipmentData.doorToDoorPhone : null,
           sender_phone: shipmentData.clientPhone || null,
           has_ticket: shipmentData.hasTicket,
-          ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : ''
+          ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : '',
+          payment_method: shipmentData.paymentMethod || 'cash'
         })
       });
 
@@ -207,55 +208,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }
       const shipment = await createRes.json();
       const shipmentId = shipment.id;
-      const finalCost = shipment.cost; // Use the cost returned by the server!
-
-      // Step 3: Send to payment
-      const sendRes = await fetch(withApiBase(`/api/shipments/${shipmentId}/send-to-payment`), {
-        method: 'POST',
-        headers
-      });
-      if (!sendRes.ok) {
-        const err = await sendRes.json().catch(() => ({}));
-        alert(err.error || 'Ошибка при переводе в статус оплаты');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Step 4: Create payment record
-      const payRes = await fetch(withApiBase('/api/payments'), {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          shipment_id: shipmentId,
-          amount: finalCost,
-          payment_method: shipmentData.paymentMethod || 'cash'
-        })
-      });
-      if (!payRes.ok) {
-        const err = await payRes.json().catch(() => ({}));
-        alert(err.error || 'Ошибка при создании платежа');
-        setIsSubmitting(false);
-        return;
-      }
-      const payment = await payRes.json();
-
-      // Step 5: Confirm payment
-      const confirmRes = await fetch(withApiBase(`/api/payments/${payment.id}/confirm`), {
-        method: 'POST',
-        headers
-      });
-      if (!confirmRes.ok) {
-        const err = await confirmRes.json().catch(() => ({}));
-        alert(err.error || 'Ошибка при подтверждении оплаты');
-        setIsSubmitting(false);
-        return;
-      }
-
-      await fetch(withApiBase(`/api/shipments/${shipmentId}/generate-qr`), {
-        method: 'POST',
-        headers
-      });
-
 
       sessionStorage.removeItem('pending_shipment_data');
       sessionStorage.removeItem('pending_shipment_step');
