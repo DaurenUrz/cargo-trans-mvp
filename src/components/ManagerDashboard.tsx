@@ -124,13 +124,19 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   };
 
 
+  // Helper to determine if a shipment was created by a staff member at the office
+  const isStaffCreated = (x: Shipment) => {
+    return (x.created_by !== x.client_id) || 
+           ['manager', 'admin', 'receiver', 'transit', 'loading', 'issue'].includes(x.client_role || '');
+  };
+
   // 2. «Ожидают привоза»
   const waitingShipments = applySortAndFilter(s.filter(x => 
     !x.is_door_to_door && 
     x.from_station === myStation &&
     ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
     // Ожидают привоза только те, которые клиент создал онлайн самостоятельно
-    (x.created_by === x.client_id || !x.created_by) &&
+    !isStaffCreated(x) &&
     matchSearch(x)
   ));
 
@@ -142,7 +148,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       // Посылки, оформленные/оплаченные менеджером, которые физически уже в офисе
       (
         ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
-        x.created_by && x.created_by !== x.client_id
+        isStaffCreated(x)
       )
     ) &&
     matchSearch(x)
