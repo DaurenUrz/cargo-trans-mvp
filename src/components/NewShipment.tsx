@@ -61,12 +61,13 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           ticketNumber: '',
           receiverName: '',
           receiverPhone: '',
-          paymentMethod: (user?.role === 'corporate' ? 'deposit' : 'cash') as 'cash' | 'card' | 'deposit',
+          paymentMethod: 'kaspi_qr',
           clientDepositBalance: 0,
           isDoorToDoor: user?.role === 'individual',
           pickupAddress: '',
           deliveryAddress: '',
           doorToDoorPhone: '',
+          actualAmount: '',
           ...parsed
         };
       } catch (e) {
@@ -96,12 +97,13 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       ticketNumber: '',
       receiverName: '',
       receiverPhone: '',
-      paymentMethod: (user?.role === 'corporate' ? 'deposit' : 'cash') as 'cash' | 'card' | 'deposit',
+      paymentMethod: 'kaspi_qr',
       clientDepositBalance: 0,
       isDoorToDoor: user?.role === 'individual',
       pickupAddress: '',
       deliveryAddress: '',
       doorToDoorPhone: '',
+      actualAmount: '',
     };
   });
 
@@ -186,7 +188,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           dimensions: '',
           description: shipmentData.description,
           value: shipmentData.value,
-          cost: calculateCost(),
+          cost: shipmentData.actualAmount ? Number(shipmentData.actualAmount) : calculateCost(),
           quantity_places: shipmentData.quantityPlaces || 1,
           receiver_name: shipmentData.receiverName || null,
           receiver_phone: shipmentData.receiverPhone || null,
@@ -198,7 +200,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           sender_phone: shipmentData.clientPhone || null,
           has_ticket: shipmentData.hasTicket,
           ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : '',
-          payment_method: shipmentData.paymentMethod || 'cash'
+          payment_method: shipmentData.paymentMethod || 'kaspi_qr'
         })
       });
 
@@ -446,12 +448,13 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       ticketNumber: '',
                       receiverName: '',
                       receiverPhone: '',
-                      paymentMethod: 'cash',
+                      paymentMethod: 'kaspi_qr',
                       clientDepositBalance: 0,
                       isDoorToDoor: false,
                       pickupAddress: '',
                       deliveryAddress: '',
                       doorToDoorPhone: '',
+                      actualAmount: '',
                     });
                   }}
                   className="w-full px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"

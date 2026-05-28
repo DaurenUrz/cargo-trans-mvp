@@ -2,7 +2,6 @@ import { useRef } from 'react';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCostBreakdown } from '../../lib/tariff';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface PaymentProps {
   data: any;
@@ -15,7 +14,6 @@ interface PaymentProps {
 
 export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSubmitting = false }: PaymentProps) {
   const { t } = useLanguage();
-  const { user } = useAuth();
   const isDark = theme === 'dark';
   const hasClickedRef = useRef(false);
 
@@ -33,12 +31,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   });
 
   const total = breakdown?.total || 0;
-  const isLegal = data.clientType === 'legal';
-  const isManagerFlow = user?.role === 'manager' || user?.role === 'admin';
-  const paymentMethod = data.paymentMethod || 'cash';
-  const depositBalance = Number(data.clientDepositBalance || 0);
-  const depositAvailable = isLegal && depositBalance > 0;
-  const canUseDeposit = depositAvailable && depositBalance >= total;
+  const paymentMethod = data.paymentMethod || 'kaspi_qr';
 
   const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
     isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'
@@ -101,96 +94,58 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
           <input type="login" className={input} placeholder="example@mail.com" />
         </div>
 
-        {/* Card */}
-        <div>
-          <label className={label}>{t('cardInfo')}</label>
-          <div className="space-y-4">
-            <div>
-              <input type="text" className={input} placeholder="1234 1234 1234 1234" maxLength={19} />
-              <div className="flex gap-2 mt-2 justify-end">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" className="h-6" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6" />
-                <img src="https://upload.wikimedia.org/wikipedia/commons/4/40/JCB_logo.svg" alt="JCB" className="h-6" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <input type="text" className={input} placeholder="MM / YY" maxLength={5} />
-              <input type="text" className={input} placeholder="CVC" maxLength={3} />
-            </div>
-
-            <input type="text" className={input} placeholder={t('cardholderName')} />
-
-            <select className={input}>
-              <option value="">{t('countryRegion')}</option>
-              <option value="KZ">Казахстан</option>
-              <option value="RU">Россия</option>
-              <option value="UZ">Узбекистан</option>
-            </select>
-
-            <input type="text" className={input} placeholder={t('postalCode')} />
+        {/* Способ оплаты */}
+        <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+          <label className={`block text-sm font-semibold mb-4 ${isDark ? 'text-gray-200' : 'text-gray-850'}`}>
+            Способ оплаты
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { id: 'kaspi_qr', label: 'Kaspi QR' },
+              { id: 'card', label: 'Карта' },
+              { id: 'assignment', label: 'Поручение' },
+              { id: 'transfer', label: 'Перечисление (от предприятия по неосвоенной сумме)' }
+            ].map((method) => {
+              const isSelected = paymentMethod === method.id;
+              return (
+                <button
+                  key={method.id}
+                  type="button"
+                  onClick={() => onUpdate({ paymentMethod: method.id })}
+                  className={`flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left ${
+                    isSelected
+                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                      : isDark
+                      ? 'border-gray-750 bg-gray-900 text-gray-300 hover:border-gray-600'
+                      : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="font-semibold text-sm">{method.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Legal entity deposit */}
-        {(isLegal || isManagerFlow) && (
-          <div className={`rounded-lg border p-4 ${isDark ? 'border-gray-600 bg-gray-700/30' : 'border-gray-200'}`}>
-            <div className={`text-sm font-medium mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Способ оплаты</div>
-            <div className={`grid grid-cols-1 ${(!isManagerFlow && isLegal) ? 'sm:grid-cols-2' : (isLegal ? 'sm:grid-cols-3' : 'sm:grid-cols-2')} gap-2`}>
-              {isManagerFlow && (
-                <button
-                  type="button"
-                  onClick={() => onUpdate({ paymentMethod: 'cash' })}
-                  className={`px-4 py-2 rounded-lg border text-sm ${paymentMethod === 'cash'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Наличные
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => onUpdate({ paymentMethod: 'card' })}
-                className={`px-4 py-2 rounded-lg border text-sm ${paymentMethod === 'card'
-                  ? 'border-blue-500 bg-blue-50 text-blue-700'
-                  : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
-                }`}
-              >
-                Карта
-              </button>
-              {isLegal && (
-                <button
-                  type="button"
-                  onClick={() => canUseDeposit && onUpdate({ paymentMethod: 'deposit' })}
-                  disabled={!canUseDeposit}
-                  className={`px-4 py-2 rounded-lg border text-sm disabled:opacity-50 ${paymentMethod === 'deposit'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : isDark ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Списать с депозита
-                </button>
-              )}
-            </div>
-            {isLegal && (
-              <div className={`mt-2 text-xs ${canUseDeposit ? 'text-green-500' : 'text-amber-500'}`}>
-                {canUseDeposit
-                  ? `Депозит доступен: ${depositBalance.toLocaleString()} ₸`
-                  : `Списание с депозита недоступно. Баланс: ${depositBalance.toLocaleString()} ₸`}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Фактически принято оплаты */}
+        <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-white'}`}>
+          <label className={label}>Фактически принято оплаты (₸)</label>
+          <input
+            type="number"
+            value={data.actualAmount !== undefined && data.actualAmount !== null ? data.actualAmount : ''}
+            onChange={(e) => onUpdate({ actualAmount: e.target.value })}
+            className={input}
+            placeholder={total.toString()}
+          />
+          <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+            Укажите фактически принятую сумму оплаты, если расчет по тарифу неточен.
+          </p>
+        </div>
 
         {/* Pay button */}
         <button
           onClick={() => {
             if (isSubmitting || hasClickedRef.current) return;
-            if (isLegal && paymentMethod === 'deposit' && !canUseDeposit) {
-              alert('Недостаточно средств на депозите для списания');
-              return;
-            }
             hasClickedRef.current = true;
             onNext();
           }}
@@ -198,7 +153,8 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
           disabled={isSubmitting}
         >
           <CreditCard className="w-5 h-5" />
-          {isSubmitting ? 'Обработка...' : (paymentMethod === 'deposit' ? 'Списать с депозита' : t('payButton'))} {total.toLocaleString()} ₸
+          {isSubmitting ? 'Обработка...' : t('payButton')}{' '}
+          {Number(data.actualAmount !== undefined && data.actualAmount !== '' ? data.actualAmount : total).toLocaleString()} ₸
         </button>
 
         <p className={`text-xs text-center ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
