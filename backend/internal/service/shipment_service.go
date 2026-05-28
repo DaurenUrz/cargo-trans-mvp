@@ -35,6 +35,7 @@ type CreateShipmentRequest struct {
 	CreatedByName   *string // Имя сотрудника, оформившего посылку
 	IsDoorToDoor    bool
 	ClientRole      string
+	CreatorRole     string // Роль сотрудника, создавшего посылку (manager, admin, individual...)
 	PickupAddress   *string
 	DeliveryAddress *string
 	DoorToDoorPhone *string
@@ -204,6 +205,19 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 		created, err = s.repo.UpdateShipment(ctx, created)
 		if err != nil {
 			return model.Shipment{}, err
+		}
+
+		// Если посылку оформил сотрудник (менеджер/админ) — клиент физически
+		// на станции с грузом. Сразу переводим в READY_FOR_LOADING ("На складе").
+		// Для door-to-door не применяем — курьер ещё должен забрать груз.
+		if !req.IsDoorToDoor {
+			isStaff := req.CreatorRole != string(model.RoleIndividual) && req.CreatorRole != string(model.RoleCorporate) && req.CreatorRole != ""
+			if isStaff {
+				created, err = s.ReadyForLoading(ctx, created.ID, req.CreatedBy, req.CreatedByName)
+				if err != nil {
+					return model.Shipment{}, err
+				}
+			}
 		}
 	}
 

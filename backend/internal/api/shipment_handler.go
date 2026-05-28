@@ -112,6 +112,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		CreatedByName:   &user.Name,
 		IsDoorToDoor:    req.IsDoorToDoor,
 		ClientRole:      clientRole,
+		CreatorRole:     string(user.Role),
 		PickupAddress:   req.PickupAddress,
 		DeliveryAddress: req.DeliveryAddress,
 		DoorToDoorPhone: req.DoorToDoorPhone,
