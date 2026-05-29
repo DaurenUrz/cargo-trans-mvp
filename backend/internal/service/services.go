@@ -107,9 +107,23 @@ func calculateRoute(from, to string) []string {
 	return result
 }
 
+func IsSameStation(a, b string) bool {
+	norm := func(s string) string {
+		s = strings.ToLower(strings.TrimSpace(s))
+		s = strings.ReplaceAll(s, " ", "")
+		s = strings.ReplaceAll(s, "-", "")
+		// Strip trailing "1" or "2" for station numbers (e.g. "алматы1" -> "алматы")
+		if strings.HasSuffix(s, "1") || strings.HasSuffix(s, "2") {
+			s = s[:len(s)-1]
+		}
+		return s
+	}
+	return norm(a) == norm(b) || strings.Contains(norm(a), norm(b)) || strings.Contains(norm(b), norm(a))
+}
+
 func indexOf(items []string, target string) int {
 	for i, item := range items {
-		if item == target {
+		if IsSameStation(item, target) {
 			return i
 		}
 	}

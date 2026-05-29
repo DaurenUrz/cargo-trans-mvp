@@ -411,7 +411,7 @@ func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station st
 	if shipment.ShipmentStatus != model.ShipmentInTransit && shipment.ShipmentStatus != model.ShipmentLoaded && shipment.ShipmentStatus != model.ShipmentReadyForLoading && shipment.ShipmentStatus != model.ShipmentCreated && shipment.ShipmentStatus != model.ShipmentCreatedDoor && shipment.ShipmentStatus != model.ShipmentPaid {
 		return model.Shipment{}, ErrInvalidTransition
 	}
-	if station == shipment.ToStation {
+	if IsSameStation(station, shipment.ToStation) {
 		return model.Shipment{}, ErrForbidden
 	}
 	if indexOf(shipment.Route, station) == -1 {
@@ -454,7 +454,7 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		return model.Shipment{}, nil, err
 	}
 
-	if strings.TrimSpace(strings.ToLower(station)) != strings.TrimSpace(strings.ToLower(shipment.ToStation)) {
+	if !IsSameStation(station, shipment.ToStation) {
 		return model.Shipment{}, nil, ErrForbidden
 	}
 	// Re-scan: if already reached final statuses, handle early return but still check for D2D transition if stuck in ARRIVED
@@ -626,7 +626,7 @@ func (s *ShipmentService) CorrectAfterPayment(ctx context.Context, id string, op
 	}
 	if nextIndex := indexOf(shipment.Route, shipment.CurrentStation) + 1; nextIndex > 0 && nextIndex < len(shipment.Route) {
 		shipment.NextStation = &shipment.Route[nextIndex]
-	} else if shipment.CurrentStation == shipment.ToStation {
+	} else if IsSameStation(shipment.CurrentStation, shipment.ToStation) {
 		shipment.NextStation = nil
 	}
 	shipment.UpdatedAt = time.Now().UTC()
@@ -686,7 +686,7 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 	if user.Role == model.RoleDirectionHead {
 		station := strings.TrimSpace(user.Station)
 		if station != "" {
-			if station == shipment.FromStation || station == shipment.ToStation || station == shipment.CurrentStation || (shipment.NextStation != nil && station == *shipment.NextStation) || indexOf(shipment.Route, station) != -1 {
+			if IsSameStation(station, shipment.FromStation) || IsSameStation(station, shipment.ToStation) || IsSameStation(station, shipment.CurrentStation) || (shipment.NextStation != nil && IsSameStation(station, *shipment.NextStation)) || indexOf(shipment.Route, station) != -1 {
 				result.UserRole = "staff"
 				result.AllowedActions = []string{"view"}
 				return result, nil
@@ -698,12 +698,12 @@ func (s *ShipmentService) ActionContext(ctx context.Context, id string, user *Au
 		result.AllowedActions = []string{"view"}
 		return result, nil
 	}
-	if user.Station == shipment.FromStation {
+	if IsSameStation(user.Station, shipment.FromStation) {
 		result.UserRole = "origin-receiver"
 		result.AllowedActions = []string{"view", "mark-loaded"}
 		return result, nil
 	}
-	if user.Station == shipment.ToStation {
+	if IsSameStation(user.Station, shipment.ToStation) {
 		result.UserRole = "destination-receiver"
 		result.AllowedActions = []string{"view", "mark-arrived", "issue"}
 		return result, nil

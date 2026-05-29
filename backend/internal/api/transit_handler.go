@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"cargo/backend/internal/model"
+	service "cargo/backend/internal/service"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -103,7 +104,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.CurrentStation == current.FromStation {
+	if service.IsSameStation(req.CurrentStation, current.FromStation) {
 		if current.ShipmentStatus == model.ShipmentCreated || current.ShipmentStatus == model.ShipmentCreatedDoor || current.ShipmentStatus == model.ShipmentPaid {
 			// Step 2: Station receiver scans it to warehouse -> READY_FOR_LOADING
 			shipment, err := s.services.Shipments.ReadyForLoading(r.Context(), current.ID, &user.ID, &user.Name)
@@ -129,7 +130,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if req.CurrentStation == current.FromStation && current.ShipmentStatus == model.ShipmentLoaded {
+	if service.IsSameStation(req.CurrentStation, current.FromStation) && current.ShipmentStatus == model.ShipmentLoaded {
 		shipment, err := s.services.Shipments.Dispatch(r.Context(), current.ID, &user.ID, &user.Name, &req.CurrentStation)
 		if err != nil {
 			handleServiceError(w, err)

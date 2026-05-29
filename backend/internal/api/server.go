@@ -327,12 +327,12 @@ func (s *Server) requireStation(user *service.AuthenticatedUser, station string)
 		return nil
 	}
 	if user.Role == model.RoleDirectionHead {
-		if user.Station == "" || user.Station != station {
+		if user.Station == "" || !service.IsSameStation(user.Station, station) {
 			return service.ErrStationMismatch
 		}
 		return nil
 	}
-	if user.Station == "" || user.Station != station {
+	if user.Station == "" || !service.IsSameStation(user.Station, station) {
 		return service.ErrStationMismatch
 	}
 	return nil
