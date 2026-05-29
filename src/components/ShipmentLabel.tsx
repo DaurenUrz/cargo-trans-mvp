@@ -14,7 +14,7 @@ export function ShipmentLabel({ data, t: _t }: ShipmentLabelProps) {
                 {/* Header */}
                 <div className="text-center border-b-2 border-black pb-4 mb-4">
                     <h1 className="text-2xl font-bold uppercase">CargoTrans</h1>
-                    <p className="text-sm">Station Almaty-1</p>
+                    <p className="text-sm">Station Almaty-2</p>
                 </div>
 
                 {/* Route */}

@@ -657,7 +657,7 @@ const translations = {
 
   en: {
     // Top Bar
-    headerStation: 'Almaty-1 Station',
+    headerStation: 'Almaty-2 Station',
     search: 'Search',
     systemNameDesc: 'Cargo Management System',
     clientRegistration: 'Client Registration',
