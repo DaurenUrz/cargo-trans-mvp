@@ -36,6 +36,10 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   const hasDeposit = data.hasDeposit === true;
   const effectiveTotal = Number(data.actualAmount !== undefined && data.actualAmount !== '' ? data.actualAmount : total);
   const depositInsufficient = paymentMethod === 'deposit' && depositBalance < effectiveTotal;
+  
+  const isNumberRequired = paymentMethod === 'faxogram' || paymentMethod === 'mo_coupons' || paymentMethod === 'payment_order';
+  const numberMissing = isNumberRequired && !data.paymentNumber?.trim();
+  const isDisabled = isSubmitting || depositInsufficient || numberMissing;
 
   const input = `w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
     isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300 bg-white'
@@ -44,9 +48,11 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
 
   const paymentMethods: { id: string; label: string; subtitle?: string }[] = [
     { id: 'kaspi_qr', label: 'Kaspi QR' },
-    { id: 'card', label: t('payMethodCard') },
-    { id: 'assignment', label: t('payMethodAssignment') },
-    { id: 'transfer', label: t('payMethodTransfer') }
+    { id: 'cash', label: 'Оплата наличными' },
+    { id: 'card', label: 'Карта' },
+    { id: 'faxogram', label: 'Факсограмма' },
+    { id: 'mo_coupons', label: 'По талонам МО' },
+    { id: 'payment_order', label: 'Чек по платежному поручению' }
   ];
 
   // Добавляем депозит если у клиента есть депозитная система
@@ -121,7 +127,13 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
                 <button
                   key={method.id}
                   type="button"
-                  onClick={() => onUpdate({ paymentMethod: method.id })}
+                  onClick={() => {
+                    const updates: any = { paymentMethod: method.id };
+                    if (method.id !== 'faxogram' && method.id !== 'mo_coupons' && method.id !== 'payment_order') {
+                      updates.paymentNumber = '';
+                    }
+                    onUpdate(updates);
+                  }}
                   className={`flex flex-col items-start p-4 rounded-xl border-2 transition-all text-left ${
                     isDeposit && isSelected && !depositInsufficient
                       ? isDark
@@ -168,6 +180,31 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
           )}
         </div>
 
+        {/* Номер платежного документа/факсограммы/талона */}
+        {(paymentMethod === 'faxogram' || paymentMethod === 'mo_coupons' || paymentMethod === 'payment_order') && (
+          <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-white'}`}>
+            <label className={label}>
+              {paymentMethod === 'faxogram' && 'Номер факсограммы'}
+              {paymentMethod === 'mo_coupons' && 'Номер талона МО'}
+              {paymentMethod === 'payment_order' && 'Номер платежного поручения'}
+            </label>
+            <input
+              type="text"
+              value={data.paymentNumber || ''}
+              onChange={(e) => onUpdate({ paymentNumber: e.target.value })}
+              className={input}
+              placeholder={
+                paymentMethod === 'faxogram'
+                  ? 'Введите номер факсограммы'
+                  : paymentMethod === 'mo_coupons'
+                  ? 'Введите номер талона МО'
+                  : 'Введите номер поручения'
+              }
+              required
+            />
+          </div>
+        )}
+
         {/* Фактически принято оплаты — не для депозита */}
         {paymentMethod !== 'deposit' && (
           <div className={`rounded-lg border p-6 ${isDark ? 'border-gray-600 bg-gray-700/50' : 'border-gray-200 bg-white'}`}>
@@ -188,18 +225,18 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
         {/* Pay button */}
         <button
           onClick={() => {
-            if (isSubmitting || hasClickedRef.current || depositInsufficient) return;
+            if (isDisabled || hasClickedRef.current) return;
             hasClickedRef.current = true;
             onNext();
           }}
           className={`w-full flex items-center justify-center gap-2 px-6 py-4 text-white rounded-lg font-medium transition-colors ${
-            depositInsufficient
+            isDisabled
               ? 'bg-gray-400 cursor-not-allowed'
               : paymentMethod === 'deposit'
               ? 'bg-green-600 hover:bg-green-700'
               : 'bg-blue-600 hover:bg-blue-700'
           } disabled:bg-gray-400`}
-          disabled={isSubmitting || depositInsufficient}
+          disabled={isDisabled}
         >
           {paymentMethod === 'deposit' ? <Wallet className="w-5 h-5" /> : <CreditCard className="w-5 h-5" />}
           {isSubmitting

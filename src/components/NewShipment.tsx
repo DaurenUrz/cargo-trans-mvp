@@ -98,6 +98,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       receiverName: '',
       receiverPhone: '',
       paymentMethod: 'kaspi_qr',
+      paymentNumber: '',
       clientDepositBalance: 0,
       isDoorToDoor: user?.role === 'individual',
       pickupAddress: '',
@@ -167,6 +168,21 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     isSubmittingRef.current = true;
     setIsSubmitting(true);
 
+    const getFormattedPaymentMethod = () => {
+      const method = shipmentData.paymentMethod || 'kaspi_qr';
+      const num = shipmentData.paymentNumber || '';
+      switch (method) {
+        case 'cash': return 'Оплата наличными';
+        case 'card': return 'Карта';
+        case 'kaspi_qr': return 'Kaspi QR';
+        case 'deposit': return 'Депозит';
+        case 'faxogram': return `Факсограмма (№ ${num})`;
+        case 'mo_coupons': return `По талонам МО (№ ${num})`;
+        case 'payment_order': return `Чек по платежному поручению (№ ${num})`;
+        default: return method;
+      }
+    };
+
     const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',
@@ -200,7 +216,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           sender_phone: shipmentData.clientPhone || null,
           has_ticket: shipmentData.hasTicket,
           ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : '',
-          payment_method: shipmentData.paymentMethod || 'kaspi_qr'
+          payment_method: getFormattedPaymentMethod()
         })
       });
 
