@@ -227,7 +227,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (createdShipmentId) {
       const token = localStorage.getItem('token');
       fetch(withApiBase(`/api/shipments/${createdShipmentId}/log-print`), {
@@ -238,13 +238,31 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       }).catch(e => console.error('Failed to log print action:', e));
     }
 
+    if (!createdShipmentNumber) return;
+
+    const totalPlaces = Math.max(1, Number(shipmentData.quantityPlaces) || 1);
+    const stickerCodes = Array.from({ length: totalPlaces }).map((_, idx) => {
+      const placeNum = idx + 1;
+      return `${createdShipmentNumber}-${placeNum}-${totalPlaces}`;
+    });
+
+    let qrUrls: string[] = [];
+    try {
+      const QRCode = await import('qrcode');
+      qrUrls = await Promise.all(
+        stickerCodes.map(code => QRCode.default.toDataURL(code, { width: 200, margin: 1 }))
+      );
+    } catch (e) {
+      console.error('Failed to generate offline QR codes, falling back to external API', e);
+      qrUrls = stickerCodes.map(code => `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${code}`);
+    }
+
     const printWindow = window.open('', '_blank');
-    if (printWindow && createdShipmentNumber) {
-      const totalPlaces = Math.max(1, Number(shipmentData.quantityPlaces) || 1);
+    if (printWindow) {
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${createdShipmentNumber}-${placeNum}-${totalPlaces}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${stickerCode}`;
+        const stickerCode = stickerCodes[idx];
+        const qrUrl = qrUrls[idx];
         return `
           <div class="print-page">
             <section class="label">

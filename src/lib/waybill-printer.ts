@@ -147,7 +147,14 @@ export async function printWaybill(shipment: any) {
     console.error('Failed to parse current user for waybill printing:', e);
   }
 
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${shipmentNumber}`;
+  let qrUrl = '';
+  try {
+    const QRCode = await import('qrcode');
+    qrUrl = await QRCode.default.toDataURL(shipmentNumber, { width: 150, margin: 1 });
+  } catch (e) {
+    console.error('Failed to generate offline QR code for waybill, falling back to external API', e);
+    qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${shipmentNumber}`;
+  }
 
   // 4. Update the opened window with the fully rendered waybill design
   printWindow.document.open();

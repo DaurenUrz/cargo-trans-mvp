@@ -46,7 +46,7 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
     return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const token = localStorage.getItem('token');
     fetch(withApiBase(`/api/shipments/${shipment.id}/log-print`), {
       method: 'POST',
@@ -55,32 +55,63 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
       }
     }).catch(e => console.error('Failed to log print action:', e));
 
+    const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
+    const stickerCodes = Array.from({ length: totalPlaces }).map((_, idx) => {
+      const placeNum = idx + 1;
+      return `${shipment.shipment_number}-${placeNum}-${totalPlaces}`;
+    });
+
+    let qrUrls: string[] = [];
+    try {
+      const QRCode = await import('qrcode');
+      qrUrls = await Promise.all(
+        stickerCodes.map(code => QRCode.default.toDataURL(code, { width: 200, margin: 1 }))
+      );
+    } catch (e) {
+      console.error('Failed to generate offline QR codes, falling back to external API', e);
+      qrUrls = stickerCodes.map(code => `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${code}`);
+    }
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      const totalPlaces = Math.max(1, Number(shipment.quantity_places) || 1);
       const labelsHtml = Array.from({ length: totalPlaces }).map((_, idx) => {
         const placeNum = idx + 1;
-        const stickerCode = `${shipment.shipment_number}-${placeNum}-${totalPlaces}`;
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${stickerCode}`;
+        const stickerCode = stickerCodes[idx];
+        const qrUrl = qrUrls[idx];
         return `
-          <section class="label">
-            <div class="header">CargoTrans</div>
-            <div class="shipment-id">${stickerCode}</div>
-            <div class="qr-container">
-              <img src="${qrUrl}" style="width:28mm;height:28mm;" />
-            </div>
-            <div class="info" style="text-align:center;border-bottom:2px solid black;padding-bottom:5px;margin-bottom:5px;">
-              ${shipment.from} -> ${shipment.to}
-            </div>
-            <div class="row info"><span>${t('weightLabel') || 'Вес:'}</span><span>${shipment.weight}</span></div>
-            <div class="row info"><span>${t('placeLabel') || 'Место:'}</span><span>${placeNum} ${t('of') || 'из'} ${totalPlaces}</span></div>
-          </section>`;
+          <div class="print-page">
+            <section class="label">
+              <div class="header">CargoTrans</div>
+              <div class="shipment-id">${stickerCode}</div>
+              <div class="qr-container">
+                <img src="${qrUrl}" style="width:28mm;height:28mm;" />
+              </div>
+              <div class="info" style="text-align:center;border-bottom:2px solid black;padding-bottom:5px;margin-bottom:5px;">
+                ${shipment.from} -> ${shipment.to}
+              </div>
+              <div class="row info"><span>${t('weightLabel') || 'Вес:'}</span><span>${shipment.weight}</span></div>
+              <div class="row info"><span>${t('placeLabel') || 'Место:'}</span><span>${placeNum} ${t('of') || 'из'} ${totalPlaces}</span></div>
+            </section>
+          </div>`;
       }).join('');
+
       printWindow.document.write(`<!DOCTYPE html><html><head><title>${t('printTitle') || 'Печать'} ${shipment.shipment_number}</title>
         <style>
           body{font-family:'Courier New',monospace;margin:0;padding:0;color:black;background:white;width:100%;}
-          .label{page-break-inside:avoid;page-break-after:always;break-after:page;margin:0!important;padding:20px!important;box-sizing:border-box;width:100%;height:95vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;}
-          .label:last-child{page-break-after:avoid;break-after:avoid;}
+          .print-page {
+            display: block;
+            page-break-inside: avoid;
+            page-break-after: always;
+            break-after: page;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+          }
+          .print-page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          .label{box-sizing:border-box;width:100%;height:auto;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:5px!important;margin:0 auto;page-break-inside:avoid;}
           .header{text-align:center;font-weight:bold;font-size:20px;margin-bottom:4px;text-transform:uppercase;}
           .shipment-id{text-align:center;font-size:18px;font-weight:bold;margin:4px 0;}
           .qr-container{display:flex;justify-content:center;margin:10px 0;width:100%;}
@@ -88,10 +119,20 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
           .info{font-size:14px;font-weight:bold;margin-bottom:6px;width:100%;}
           .row{display:flex;justify-content:space-between;margin-bottom:4px;width:100%;}
           @media print{@page{margin:0;size:auto;}body{margin:0;padding:0;}}
-        </style></head><body>${labelsHtml}</body></html>`);
+        </style>
+        <script>
+          window.onload = function() {
+            setTimeout(function() {
+              window.print();
+            }, 300);
+          };
+          window.onafterprint = function() {
+            window.close();
+          };
+        <\/script>
+        </head><body>${labelsHtml}</body></html>`);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => { printWindow.print(); printWindow.close(); }, 1500);
     }
   };
 
