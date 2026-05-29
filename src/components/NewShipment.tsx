@@ -246,24 +246,26 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         const stickerCode = `${createdShipmentNumber}-${placeNum}-${totalPlaces}`;
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${stickerCode}`;
         return `
-          <section class="label">
-            <div class="header">CargoTrans</div>
-            <div class="shipment-id">${stickerCode}</div>
-            <div class="qr-container">
-              <img src="${qrUrl}" style="width:28mm;height:28mm;" />
-            </div>
-            <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
-              ${shipmentData.fromStation} -> ${shipmentData.toStation}
-            </div>
-            <div class="row info">
-              <span>Вес:</span>
-              <span>${shipmentData.weight} кг</span>
-            </div>
-            <div class="row info">
-              <span>Место:</span>
-              <span>${placeNum} из ${totalPlaces}</span>
-            </div>
-          </section>
+          <div class="print-page">
+            <section class="label">
+              <div class="header">CargoTrans</div>
+              <div class="shipment-id">${stickerCode}</div>
+              <div class="qr-container">
+                <img src="${qrUrl}" style="width:28mm;height:28mm;" />
+              </div>
+              <div class="info" style="text-align: center; border-bottom: 2px solid black; padding-bottom: 5px; margin-bottom: 5px;">
+                ${shipmentData.fromStation} -> ${shipmentData.toStation}
+              </div>
+              <div class="row info">
+                <span>Вес:</span>
+                <span>${shipmentData.weight} кг</span>
+              </div>
+              <div class="row info">
+                <span>Место:</span>
+                <span>${placeNum} из ${totalPlaces}</span>
+              </div>
+            </section>
+          </div>
         `;
       }).join('');
       printWindow.document.write(`
@@ -280,24 +282,27 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 background: white;
                 width: 100%;
               }
-              .label {
+              .print-page {
+                display: block;
                 page-break-inside: avoid;
                 page-break-after: always;
                 break-after: page;
-                margin: 0 !important;
-                padding: 20px !important;
+                width: 100%;
+              }
+              .print-page:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+              }
+              .label {
                 box-sizing: border-box;
                 width: 100%;
-                height: 95vh;
+                height: 98vh;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
                 text-align: center;
-              }
-              .label:last-child {
-                page-break-after: avoid;
-                break-after: avoid;
+                padding: 10px !important;
               }
               .header {
                 text-align: center;
@@ -340,6 +345,14 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 body { margin: 0; padding: 0; }
               }
             </style>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  window.close();
+                }, 300);
+              };
+            <\/script>
           </head>
           <body>
             ${labelsHtml}
@@ -348,10 +361,6 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       `);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 1500);
     }
   };
 
