@@ -290,8 +290,8 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 	switch current.ShipmentStatus {
 
 	// Обычная посылка от клиента (менеджер оформил в отделении)
-	case model.ShipmentCreated:
-		if station != current.FromStation {
+	case model.ShipmentCreated, model.ShipmentPaid:
+		if !service.IsSameStation(station, current.FromStation) {
 			writeError(w, http.StatusForbidden,
 				"Груз оформлен на станции "+current.FromStation+". Ваша станция: "+station)
 			return
@@ -315,7 +315,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 				"Посылка door-to-door. Дождитесь доставки курьером и принимайте по номеру заказа")
 			return
 		}
-		if station != current.FromStation {
+		if !service.IsSameStation(station, current.FromStation) {
 			writeError(w, http.StatusForbidden,
 				"Груз оформлен на станции "+current.FromStation+". Ваша станция: "+station)
 			return
@@ -338,7 +338,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnprocessableEntity, "Неожиданный статус для сканирования")
 			return
 		}
-		if station != current.FromStation {
+		if !service.IsSameStation(station, current.FromStation) {
 			writeError(w, http.StatusForbidden,
 				"Груз оформлен на станции "+current.FromStation+". Ваша станция: "+station)
 			return
@@ -354,7 +354,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 
 	// Прибытие в город назначения — IN_TRANSIT (обычный путь)
 	case model.ShipmentInTransit:
-		if station != current.ToStation {
+		if !service.IsSameStation(station, current.ToStation) {
 			writeError(w, http.StatusForbidden,
 				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
 			return
@@ -387,7 +387,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 
 	// Прямой переход LOADED→ARRIVED (без IN_TRANSIT, разрешён для receiver назначения)
 	case model.ShipmentLoaded:
-		if station != current.ToStation {
+		if !service.IsSameStation(station, current.ToStation) {
 			writeError(w, http.StatusForbidden,
 				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
 			return
@@ -420,7 +420,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 
 	// Сканирование на выдачу (если уже прибыл, автоматически выдаем клиенту!)
 	case model.ShipmentArrived, model.ShipmentReadyForIssue:
-		if station != current.ToStation {
+		if !service.IsSameStation(station, current.ToStation) {
 			writeError(w, http.StatusForbidden,
 				"Выдача невозможна: груз находится на станции "+current.ToStation+". Ваша станция: "+station)
 			return
@@ -452,7 +452,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 
 	// Курьер взял задачу на доставку — приемосдатчик сканирует для подтверждения выдачи курьеру
 	case model.ShipmentDeliveryAssigned:
-		if station != current.ToStation {
+		if !service.IsSameStation(station, current.ToStation) {
 			writeError(w, http.StatusForbidden,
 				"Груз следует в "+current.ToStation+". Ваша станция: "+station)
 			return
