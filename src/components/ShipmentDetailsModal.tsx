@@ -77,12 +77,14 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
             page-break-after: always;
             break-after: page;
             width: 100%;
+            margin: 0;
+            padding: 0;
           }
           .print-page:last-child {
             page-break-after: avoid;
             break-after: avoid;
           }
-          .label{box-sizing:border-box;width:100%;height:98vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:10px!important;}
+          .label{box-sizing:border-box;width:100%;height:auto;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:5px!important;margin:0 auto;page-break-inside:avoid;}
           .header{text-align:center;font-weight:bold;font-size:20px;margin-bottom:4px;text-transform:uppercase;}
           .shipment-id{text-align:center;font-size:18px;font-weight:bold;margin:4px 0;}
           .qr-container{display:flex;justify-content:center;margin:10px 0;width:100%;}

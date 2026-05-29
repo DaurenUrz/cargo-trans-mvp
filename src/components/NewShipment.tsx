@@ -288,6 +288,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 page-break-after: always;
                 break-after: page;
                 width: 100%;
+                margin: 0;
+                padding: 0;
               }
               .print-page:last-child {
                 page-break-after: avoid;
@@ -296,13 +298,15 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               .label {
                 box-sizing: border-box;
                 width: 100%;
-                height: 98vh;
+                height: auto;
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: center;
                 text-align: center;
-                padding: 10px !important;
+                padding: 5px !important;
+                margin: 0 auto;
+                page-break-inside: avoid;
               }
               .header {
                 text-align: center;
