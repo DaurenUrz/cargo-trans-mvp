@@ -97,8 +97,10 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
           window.onload = function() {
             setTimeout(function() {
               window.print();
-              window.close();
             }, 300);
+          };
+          window.onafterprint = function() {
+            window.close();
           };
         <\/script>
         </head><body>${labelsHtml}</body></html>`);

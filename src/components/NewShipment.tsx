@@ -353,8 +353,10 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
               window.onload = function() {
                 setTimeout(function() {
                   window.print();
-                  window.close();
                 }, 300);
+              };
+              window.onafterprint = function() {
+                window.close();
               };
             <\/script>
           </head>
