@@ -358,15 +358,7 @@ func (s *ShipmentService) CourierHandover(ctx context.Context, id string, operat
 }
 
 func (s *ShipmentService) ReadyForLoading(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
-	res, err := s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
-	if err != nil {
-		return res, err
-	}
-	// WhatsApp: уведомление обоим клиентам — посылка принята в багажное отделение
-	go s.notifyBothClients(res,
-		fmt.Sprintf("📦 Ваша посылка %s принята в багажное отделение на станции %s.", res.ShipmentNumber, res.FromStation),
-		fmt.Sprintf("📦 Посылка %s для вас принята в багажное отделение. Маршрут: %s → %s.", res.ShipmentNumber, res.FromStation, res.ToStation))
-	return res, nil
+	return s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
 }
 
 func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, operatorName, station, transportUnitID *string) (model.Shipment, error) {
@@ -392,15 +384,7 @@ func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, opera
 }
 
 func (s *ShipmentService) Dispatch(ctx context.Context, id string, operatorID, operatorName, station *string) (model.Shipment, error) {
-	res, err := s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment dispatched", nil)
-	if err != nil {
-		return res, err
-	}
-	// WhatsApp: уведомление обоим клиентам — посылка в пути
-	go s.notifyBothClients(res,
-		fmt.Sprintf("🚂 Ваша посылка %s отправлена и находится в пути. Маршрут: %s → %s.", res.ShipmentNumber, res.FromStation, res.ToStation),
-		fmt.Sprintf("🚂 Посылка %s для вас отправлена и находится в пути (%s → %s).", res.ShipmentNumber, res.FromStation, res.ToStation))
-	return res, nil
+	return s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment dispatched", nil)
 }
 
 func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station string, operatorID, operatorName *string) (model.Shipment, error) {
@@ -497,10 +481,6 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 		return shipment, nil, nil
 	}
 
-	// WhatsApp уведомление обоим клиентам о прибытии
-	go s.notifyBothClients(shipment,
-		fmt.Sprintf("✅ Ваша посылка %s прибыла в город %s.", shipment.ShipmentNumber, station),
-		fmt.Sprintf("✅ Посылка %s для вас прибыла в город %s.", shipment.ShipmentNumber, station))
 
 	if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
 		// Автоматически переводим в READY_FOR_ISSUE, чтобы курьер увидел задачу
@@ -813,94 +793,98 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 	})
 	// Send WhatsApp status notification to receiver/client
 	go func(s model.Shipment, newStatus model.ShipmentLifecycle) {
-		var msg string
+		senderPhone := ""
+		if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
+			senderPhone = *s.DoorToDoorPhone
+		} else if s.SenderPhone != nil && *s.SenderPhone != "" {
+			senderPhone = *s.SenderPhone
+		}
+
+		receiverPhone := ""
+		if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
+			receiverPhone = *s.ReceiverPhone
+		} else {
+			receiverPhone = senderPhone
+		}
+
+		var senderMsg, receiverMsg string
+
 		switch newStatus {
+		case model.ShipmentReadyForLoading, model.ShipmentAtStationIntake:
+			senderMsg = fmt.Sprintf("📦 Ваша посылка %s принята в багажное отделение на станции %s и ожидает погрузки в вагон.", s.ShipmentNumber, s.CurrentStation)
+			receiverMsg = fmt.Sprintf("📦 Посылка %s для вас принята в багажное отделение на станции %s. Маршрут: %s → %s.", s.ShipmentNumber, s.CurrentStation, s.FromStation, s.ToStation)
+
 		case model.ShipmentLoaded:
-			msg = fmt.Sprintf("📦 Груз %s загружен и готов к отправке из %s.", s.ShipmentNumber, s.CurrentStation)
+			senderMsg = fmt.Sprintf("📦 Груз %s загружен и готов к отправке из %s.", s.ShipmentNumber, s.CurrentStation)
+
 		case model.ShipmentInTransit:
-			msg = fmt.Sprintf("🚂 Груз %s в пути. Маршрут: %s → %s.", s.ShipmentNumber, s.FromStation, s.ToStation)
+			senderMsg = fmt.Sprintf("🚂 Ваша посылка %s отправлена и находится в пути. Маршрут: %s → %s.", s.ShipmentNumber, s.FromStation, s.ToStation)
+			receiverMsg = fmt.Sprintf("🚂 Посылка %s для вас отправлена и находится в пути (%s → %s).", s.ShipmentNumber, s.FromStation, s.ToStation)
+
 		case model.ShipmentArrived:
 			if s.IsDoorToDoor {
-				msg = fmt.Sprintf("✅ Ваш груз %s прибыл в %s. Курьер скоро заберёт его и доставит по адресу. Ожидайте звонка!", s.ShipmentNumber, s.CurrentStation)
+				senderMsg = fmt.Sprintf("✅ Ваша посылка %s прибыла в город %s.", s.ShipmentNumber, s.CurrentStation)
+				receiverMsg = fmt.Sprintf("✅ Ваш груз %s прибыл в %s. Курьер скоро заберёт его и доставит по адресу. Ожидайте звонка!", s.ShipmentNumber, s.CurrentStation)
 			} else {
 				issueCode := ""
 				if s.IssueCode != nil {
 					issueCode = *s.IssueCode
 				}
-				msg = fmt.Sprintf("✅ Груз %s прибыл на станцию %s и ожидает получения!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
+				senderMsg = fmt.Sprintf("✅ Ваша посылка %s прибыла в город %s. PIN-код для получения получателем: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
+				receiverMsg = fmt.Sprintf("✅ Груз %s прибыл на станцию %s и ожидает получения!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 			}
+
 		case model.ShipmentReadyForIssue:
 			if s.IsDoorToDoor {
-				// Пропускаем дубликат, так как для D2D сообщение уже отправлено в статусе ARRIVED
 				return
-			} else {
-				issueCode := ""
-				if s.IssueCode != nil {
-					issueCode = *s.IssueCode
-				}
-				msg = fmt.Sprintf("✅ Груз %s готов к выдаче на станции %s!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
 			}
+			issueCode := ""
+			if s.IssueCode != nil {
+				issueCode = *s.IssueCode
+			}
+			senderMsg = fmt.Sprintf("✅ Ваша посылка %s готова к выдаче на станции %s. PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
+			receiverMsg = fmt.Sprintf("✅ Груз %s готов к выдаче на станции %s!\nДля получения назовите PIN-код: *%s*", s.ShipmentNumber, s.CurrentStation, issueCode)
+
 		case model.ShipmentOutForDelivery:
 			if s.IsDoorToDoor {
 				issueCode := ""
 				if s.IssueCode != nil {
 					issueCode = *s.IssueCode
 				}
-				msg = fmt.Sprintf("🚚 Курьер забрал ваш заказ %s и направляется к вам! Ожидайте звонка.\nКод для получения: *%s*", s.ShipmentNumber, issueCode)
+				receiverMsg = fmt.Sprintf("🚚 Курьер забрал ваш заказ %s и направляется к вам! Ожидайте звонка.\nКод для получения: *%s*", s.ShipmentNumber, issueCode)
 			}
+
 		case model.ShipmentIssued:
-			msg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
+			senderMsg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
+			receiverMsg = fmt.Sprintf("🎉 Груз %s успешно выдан. Спасибо, что воспользовались нашими услугами!", s.ShipmentNumber)
+
 		case model.ShipmentPickedUp:
-			msg = fmt.Sprintf("📬 Курьер забрал ваш груз %s. Он скоро поступит на склад для отправки.", s.ShipmentNumber)
-		case model.ShipmentReadyForLoading, model.ShipmentAtStationIntake:
-			msg = fmt.Sprintf("📦 Груз %s успешно принят на склад станции %s и ожидает погрузки в вагон.", s.ShipmentNumber, s.CurrentStation)
+			senderMsg = fmt.Sprintf("📬 Курьер забрал ваш груз %s. Он скоро поступит на склад для отправки.", s.ShipmentNumber)
+
 		case model.ShipmentPickupAssigned:
-			// Уведомление для отправителя о выезде курьера за грузом
 			issueCode := ""
 			if s.PickupCode != nil {
 				issueCode = *s.PickupCode
 			}
-			msg = fmt.Sprintf("🚚 К вам выехал курьер за грузом %s.\nКогда он приедет, назовите ему код: *%s*", s.ShipmentNumber, issueCode)
+			senderMsg = fmt.Sprintf("🚚 К вам выехал курьер за грузом %s.\nКогда он приедет, назовите ему код: *%s*", s.ShipmentNumber, issueCode)
+
 		case model.ShipmentDeliveryAssigned:
-			// Уведомление для получателя о выезде курьера для доставки
 			issueCode := ""
 			if s.IssueCode != nil {
 				issueCode = *s.IssueCode
 			}
-			msg = fmt.Sprintf("🚚 Курьер едет к вам с грузом %s.\nНазовите ему код: *%s*", s.ShipmentNumber, issueCode)
+			receiverMsg = fmt.Sprintf("🚚 Курьер едет к вам с грузом %s.\nНазовите ему код: *%s*", s.ShipmentNumber, issueCode)
 		}
-		if msg != "" {
-			// ОПРЕДЕЛЯЕМ КОМУ ОТПРАВЛЯТЬ
-			targetPhone := ""
-			switch newStatus {
-			case model.ShipmentPickupAssigned:
-				// Отправителю
-				if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
-					targetPhone = *s.DoorToDoorPhone
-				} else if s.SenderPhone != nil && *s.SenderPhone != "" {
-					targetPhone = *s.SenderPhone
-				}
-			case model.ShipmentDeliveryAssigned, model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentOutForDelivery:
-				// Получателю (с резервным копированием на отправителя, если номер получателя пуст)
-				if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
-					targetPhone = *s.ReceiverPhone
-				} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
-					targetPhone = *s.DoorToDoorPhone
-				} else if s.SenderPhone != nil && *s.SenderPhone != "" {
-					targetPhone = *s.SenderPhone
-				}
-			default:
-				// По умолчанию (например, статус Создано или Выдано) — отправителю
-				if s.SenderPhone != nil && *s.SenderPhone != "" {
-					targetPhone = *s.SenderPhone
-				} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
-					targetPhone = *s.DoorToDoorPhone
-				}
-			}
 
-			if targetPhone != "" {
-				_ = whatsapp.SendMessage(targetPhone, msg)
-			}
+		if senderMsg != "" && senderPhone != "" {
+			_ = whatsapp.SendMessage(senderPhone, senderMsg)
+		}
+
+		if receiverMsg != "" && receiverPhone != "" && receiverPhone != senderPhone {
+			time.Sleep(500 * time.Millisecond)
+			_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
+		} else if receiverMsg != "" && receiverPhone == senderPhone && senderMsg == "" {
+			_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
 		}
 	}(updated, next)
 	return updated, nil

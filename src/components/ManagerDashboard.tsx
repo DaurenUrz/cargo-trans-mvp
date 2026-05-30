@@ -478,7 +478,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                       onClick={(e) => handleNotifyArrival(s.id, e)}
                       className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white transition-colors"
                     >
-                      {t('notifyArrival') || 'Уведомить'}
+                      {t('notify') || 'Уведомить'}
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${s.door_to_door_phone || s.receiver_phone || ''}`; }}

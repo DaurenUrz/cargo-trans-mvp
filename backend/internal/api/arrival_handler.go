@@ -138,8 +138,12 @@ func (s *Server) handleNotifyArrival(w http.ResponseWriter, r *http.Request) {
 		msg = fmt.Sprintf("📦 Ваш груз %s прибыл в %s.\n\nКурьер скоро доставит его по указанному адресу. Ожидайте звонка!\nОтправитель: %s",
 			shipment.ShipmentNumber, shipment.ToStation, shipment.ClientName)
 	} else {
-		msg = fmt.Sprintf("✅ Ваша посылка %s прибыла в %s.\n\nПриходите за грузом в офис с паспортом или удостоверением личности.\nОтправитель: %s",
-			shipment.ShipmentNumber, shipment.ToStation, shipment.ClientName)
+		issueCode := ""
+		if shipment.IssueCode != nil {
+			issueCode = *shipment.IssueCode
+		}
+		msg = fmt.Sprintf("✅ Ваша посылка %s прибыла в %s.\n\nПриходите за грузом в офис с паспортом или удостоверением личности.\nДля получения назовите PIN-код: *%s*\nОтправитель: %s",
+			shipment.ShipmentNumber, shipment.ToStation, issueCode, shipment.ClientName)
 	}
 
 	if err := whatsapp.SendMessage(phone, msg); err != nil {
