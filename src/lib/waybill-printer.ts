@@ -632,10 +632,13 @@ export async function printWaybill(shipment: any) {
         window.onload = function() {
           setTimeout(function() {
             window.print();
-            // Automatically close the window in print mode after delay
-            window.onafterprint = function() { window.close(); };
           }, 1000);
-        }
+        };
+        window.onafterprint = function() {
+          setTimeout(function() {
+            window.close();
+          }, 1000);
+        };
       </script>
     </body>
     </html>

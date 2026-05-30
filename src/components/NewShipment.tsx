@@ -390,7 +390,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                 }, 300);
               };
               window.onafterprint = function() {
-                window.close();
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
               };
             <\/script>
           </head>

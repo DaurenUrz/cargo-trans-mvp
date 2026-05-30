@@ -813,15 +813,6 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 	})
 	// Send WhatsApp status notification to receiver/client
 	go func(s model.Shipment, newStatus model.ShipmentLifecycle) {
-		phone := ""
-		if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
-			phone = *s.ReceiverPhone
-		} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
-			phone = *s.DoorToDoorPhone
-		}
-		if phone == "" {
-			return
-		}
 		var msg string
 		switch newStatus {
 		case model.ShipmentLoaded:
@@ -890,11 +881,13 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 					targetPhone = *s.SenderPhone
 				}
 			case model.ShipmentDeliveryAssigned, model.ShipmentArrived, model.ShipmentReadyForIssue, model.ShipmentOutForDelivery:
-				// Получателю
+				// Получателю (с резервным копированием на отправителя, если номер получателя пуст)
 				if s.ReceiverPhone != nil && *s.ReceiverPhone != "" {
 					targetPhone = *s.ReceiverPhone
 				} else if s.DoorToDoorPhone != nil && *s.DoorToDoorPhone != "" {
 					targetPhone = *s.DoorToDoorPhone
+				} else if s.SenderPhone != nil && *s.SenderPhone != "" {
+					targetPhone = *s.SenderPhone
 				}
 			default:
 				// По умолчанию (например, статус Создано или Выдано) — отправителю

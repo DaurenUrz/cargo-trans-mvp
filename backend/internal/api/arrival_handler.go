@@ -118,16 +118,18 @@ func (s *Server) handleNotifyArrival(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Determine receiver phone: prefer ReceiverPhone, then DoorToDoorPhone
+	// Determine receiver phone: prefer ReceiverPhone, then DoorToDoorPhone, then fallback to SenderPhone/DoorToDoorPhone
 	phone := ""
 	if shipment.ReceiverPhone != nil && *shipment.ReceiverPhone != "" {
 		phone = *shipment.ReceiverPhone
 	} else if shipment.DoorToDoorPhone != nil && *shipment.DoorToDoorPhone != "" {
 		phone = *shipment.DoorToDoorPhone
+	} else if shipment.SenderPhone != nil && *shipment.SenderPhone != "" {
+		phone = *shipment.SenderPhone
 	}
 
 	if phone == "" {
-		writeError(w, http.StatusUnprocessableEntity, "Номер телефона получателя не указан для данной посылки")
+		writeError(w, http.StatusUnprocessableEntity, "Контактный номер телефона для данной посылки отсутствует")
 		return
 	}
 

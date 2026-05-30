@@ -127,7 +127,9 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
             }, 300);
           };
           window.onafterprint = function() {
-            window.close();
+            setTimeout(function() {
+              window.close();
+            }, 1000);
           };
         <\/script>
         </head><body>${labelsHtml}</body></html>`);

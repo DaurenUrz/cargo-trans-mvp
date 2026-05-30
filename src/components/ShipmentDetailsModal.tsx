@@ -116,7 +116,9 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
             }, 300);
           };
           window.onafterprint = function() {
-            window.close();
+            setTimeout(function() {
+              window.close();
+            }, 1000);
           };
         <\/script>
         </head><body>${labelsHtml}</body></html>`);
