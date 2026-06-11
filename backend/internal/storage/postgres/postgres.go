@@ -70,8 +70,8 @@ func (db *DB) Migrate() error {
 	// Create or update default admin user
 	_, _ = db.pool.Exec(ctx, `
 		INSERT INTO users (id, name, login, password_hash, role, deposit_balance, is_active)
-		VALUES ('admin-001', 'Admin', 'admin@admin.com', '$2a$10$6a38vVYPoVs0OBngM21Ksu9Rz0QaShAfhSg.DjRxjb8oInIKlh0me', 'admin', 0, true)
-		ON CONFLICT (id) DO UPDATE SET password_hash = EXCLUDED.password_hash
+		VALUES ('admin-001', 'Admin', 'admin', '$2a$10$6a38vVYPoVs0OBngM21Ksu9Rz0QaShAfhSg.DjRxjb8oInIKlh0me', 'admin', 0, true)
+		ON CONFLICT (id) DO UPDATE SET login = EXCLUDED.login, password_hash = EXCLUDED.password_hash
 	`)
 
 	return nil
