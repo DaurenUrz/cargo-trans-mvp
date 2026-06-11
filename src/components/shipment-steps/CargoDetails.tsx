@@ -78,6 +78,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
               type="number"
               value={data.weight}
               onChange={(e) => onUpdate({ weight: e.target.value })}
+              onWheel={(e) => (e.target as HTMLInputElement).blur()}
               className={`${input} ${isOverweight ? 'border-red-500 focus:ring-red-500' : ''}`}
               placeholder="0"
               min="0"
@@ -100,6 +101,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
                 const val = e.target.value;
                 onUpdate({ quantityPlaces: val === '' ? '' : Math.max(1, parseInt(val) || 1) });
               }}
+              onWheel={(e) => (e.target as HTMLInputElement).blur()}
               className={input}
               placeholder="1"
               min="1"
@@ -153,6 +155,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
             type="number"
             value={data.value}
             onChange={(e) => onUpdate({ value: e.target.value })}
+            onWheel={(e) => (e.target as HTMLInputElement).blur()}
             className={input}
             placeholder="0"
             min="0"

@@ -135,7 +135,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
   }, [currentStep]);
 
   const updateShipmentData = (data: Partial<typeof shipmentData>) => {
-    setShipmentData({ ...shipmentData, ...data });
+    setShipmentData((prev: typeof shipmentData) => ({ ...prev, ...data }));
   };
 
   const calculateCost = () => {

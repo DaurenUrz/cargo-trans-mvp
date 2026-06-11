@@ -213,6 +213,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
               type="number"
               value={data.actualAmount !== undefined && data.actualAmount !== null ? data.actualAmount : ''}
               onChange={(e) => onUpdate({ actualAmount: e.target.value })}
+              onWheel={(e) => (e.target as HTMLInputElement).blur()}
               className={input}
               placeholder={total.toString()}
             />
