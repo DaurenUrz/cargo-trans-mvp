@@ -42,9 +42,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [transitRouteFilter, setTransitRouteFilter] = useState<string>('all');
 
-  const [issueModal, setIssueModal] = useState<{ isOpen: boolean; shipmentId: string | null; error: string | null }>({ isOpen: false, shipmentId: null, error: null });
-  const [issuePin, setIssuePin] = useState('');
-  const [processing, setProcessing] = useState(false);
+
 
   const fetchShipments = async () => {
     setLoading(true);
@@ -200,10 +198,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     status: translateLifecycleStatus(shipment.shipment_status || shipment.status),
   });
 
-  const handleIssueClick = (shipmentId: string) => {
-    setIssueModal({ isOpen: true, shipmentId, error: null });
-    setIssuePin('');
-  };
+
 
   const handleNotifyArrival = async (shipmentId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -226,7 +221,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   const handleClearPayment = async (shipmentId: string) => {
     if (!window.confirm(t('confirmSurchargePayment') || 'Подтвердить получение доплаты?')) return;
-    setProcessing(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/clear-payment`), {
@@ -241,43 +235,10 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       }
     } catch (err) {
       alert(t('errorNetwork'));
-    } finally {
-      setProcessing(false);
     }
   };
 
-  const handleIssueSubmit = async () => {
-    const { shipmentId } = issueModal;
-    if (!shipmentId) return;
-    if (!issuePin.trim() || issuePin.trim().length !== 4) {
-      setIssueModal(prev => ({ ...prev, error: 'Укажите 4-значный PIN-код' }));
-      return;
-    }
-    setProcessing(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/issue`), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ code: issuePin.trim() })
-      });
-      if (res.ok) {
-        setIssueModal({ isOpen: false, shipmentId: null, error: null });
-        fetchShipments();
-      } else {
-        const err = await res.json();
-        if (res.status === 402) {
-          setIssueModal(prev => ({ ...prev, error: (t('errorSurchargeNeeded') || 'Сначала необходимо получить доплату') + ` ${err.error?.match(/\d+/)?.[0] || ''} тг` }));
-        } else {
-          setIssueModal(prev => ({ ...prev, error: err.error || 'Ошибка выдачи' }));
-        }
-      }
-    } catch {
-      setIssueModal(prev => ({ ...prev, error: 'Ошибка сети' }));
-    } finally {
-      setProcessing(false);
-    }
-  };
+
 
   if (selectedShipment) {
     return <ActiveShipmentDetails shipment={selectedShipment} onClose={() => setSelectedShipment(null)} onRefresh={fetchShipments} theme={theme} />;
@@ -486,22 +447,13 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                     >
                       <Phone className="w-4 h-4" /> {t('call')}
                     </button>
-                    {!s.is_door_to_door && (
-                      s.payment_required ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleClearPayment(s.id); }}
-                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors"
-                        >
-                          {t('paySurcharge') || 'Оплатить доплату'}
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleIssueClick(s.id); }}
-                          className="flex-1 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors"
-                        >
-                          {t('issue') || 'Выдать'}
-                        </button>
-                      )
+                    {!s.is_door_to_door && s.payment_required && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleClearPayment(s.id); }}
+                        className="flex-1 py-2 rounded-lg text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                      >
+                        {t('paySurcharge') || 'Оплатить доплату'}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -625,54 +577,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
         )}
       </div>
 
-      {issueModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-xl shadow-lg w-full max-w-md overflow-hidden ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white'}`}>
-            <div className={`px-6 py-4 border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h3 className="text-lg font-bold">{t('issueCargo')}</h3>
-            </div>
-            <div className="p-6 space-y-4">
-              {issueModal.error && (
-                <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-                  {issueModal.error}
-                </div>
-              )}
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                Укажите 4-значный PIN-код, который был отправлен получателю.
-              </p>
-              <div>
-                <label className="block text-sm font-medium mb-1">PIN-код</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={4}
-                  value={issuePin}
-                  onChange={e => setIssuePin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  onKeyDown={e => { if (e.key === 'Enter' && issuePin.length === 4) handleIssueSubmit(); }}
-                  autoFocus
-                  className={`w-full px-4 py-3 border rounded-lg text-center text-2xl font-mono tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
-                  placeholder="_ _ _ _"
-                />
-              </div>
-            </div>
-            <div className={`px-6 py-4 border-t flex justify-end gap-3 ${isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
-              <button
-                onClick={() => setIssueModal({ isOpen: false, shipmentId: null, error: null })}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${isDark ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                onClick={handleIssueSubmit}
-                disabled={processing}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                {processing ? t('processing') : t('issue')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

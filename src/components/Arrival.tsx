@@ -10,12 +10,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
   const { user } = useAuth();
   const [arrivals, setArrivals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [issueModal, setIssueModal] = useState<{ isOpen: boolean; shipmentId: string | null; error: string | null }>({
-    isOpen: false,
-    shipmentId: null,
-    error: null,
-  });
-  const [pinCode, setPinCode] = useState('');
+
 
   const fetchArrivals = async () => {
     if (!user?.station) return;
@@ -44,51 +39,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
 
 
 
-  const handleIssueClick = (id: string) => {
-    setIssueModal({ isOpen: true, shipmentId: id, error: null });
-    setPinCode('');
-  };
 
-  const handleIssueSubmit = async () => {
-    const { shipmentId } = issueModal;
-    if (!shipmentId) return;
-
-    if (!pinCode.trim()) {
-      setIssueModal(prev => ({ ...prev, error: "Укажите PIN-код" }));
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(withApiBase(`/api/shipments/${shipmentId}/issue`), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          code: pinCode.trim()
-        })
-      });
-
-      if (res.ok) {
-        setIssueModal({ isOpen: false, shipmentId: null, error: null });
-        fetchArrivals();
-      } else {
-        const err = await res.json();
-        if (res.status === 402) {
-          setIssueModal(prev => ({ ...prev, error: "Сначала необходимо получить доплату " + (err.error?.match(/\d+/)?.[0] || "") + " тг" }));
-        } else if (res.status === 403) {
-          setIssueModal(prev => ({ ...prev, error: "Данные получателя не совпадают. Укажите правильное имя и телефон." }));
-        } else {
-          setIssueModal(prev => ({ ...prev, error: err.error || 'Failed to mark shipment for issue' }));
-        }
-      }
-    } catch (error) {
-      console.error('Issue error:', error);
-      setIssueModal(prev => ({ ...prev, error: 'Network error' }));
-    }
-  };
 
   return (
     <div>
@@ -161,12 +112,6 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
                         }`}>
                       {t('notify')}
                     </button>
-                    <button
-                      onClick={() => handleIssueClick(arrival.id)}
-                      className="flex-1 sm:flex-none px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
-                    >
-                      {t('issue')}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -175,54 +120,7 @@ export function Arrival({ theme }: { theme?: 'light' | 'dark' }) {
         </div>
       </div>
 
-      {issueModal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className={`rounded-xl shadow-lg w-full max-w-md overflow-hidden ${theme === 'dark' ? 'bg-gray-800' : 'bg-white'}`}>
-            <div className={`px-6 py-4 border-b ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}>
-              <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                Выдача груза
-              </h3>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              {issueModal.error && (
-                <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
-                  {issueModal.error}
-                </div>
-              )}
 
-              <div>
-                <label className={`block text-sm font-medium mb-1 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                  PIN-код из SMS (обязательно)
-                </label>
-                <input
-                  type="text"
-                  value={pinCode}
-                  onChange={e => setPinCode(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg tracking-widest font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${theme === 'dark' ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-                  placeholder="0000"
-                  maxLength={4}
-                />
-              </div>
-            </div>
-
-            <div className={`px-6 py-4 border-t flex justify-end gap-3 ${theme === 'dark' ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50'}`}>
-              <button
-                onClick={() => setIssueModal({ isOpen: false, shipmentId: null, error: null })}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${theme === 'dark' ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-200'}`}
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleIssueSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                Выдать
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
