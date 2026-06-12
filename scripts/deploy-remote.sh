@@ -40,7 +40,15 @@ echo "Syncing backend..."
 echo "Applying DB patches and restarting backend..."
 "${SSH[@]}" "$SERVER" 'bash -s' <<'REMOTE'
 set -e
-DATABASE_URL="${DATABASE_URL:-postgres://postgres:postgres@localhost:5432/cargotrans?sslmode=disable}"
+# Try to extract DATABASE_URL from systemd service if defined
+if systemctl show cargo -p Environment &>/dev/null; then
+  SERVICE_ENV=$(systemctl show cargo -p Environment || true)
+  DETECTED_DB_URL=$(echo "$SERVICE_ENV" | grep -o 'DATABASE_URL=[^" ]*' | cut -d= -f2- || true)
+  if [ -n "$DETECTED_DB_URL" ]; then
+    DATABASE_URL="$DETECTED_DB_URL"
+  fi
+fi
+DATABASE_URL="${DATABASE_URL:-postgres://cargotrans:CargoTrans2026!@localhost:5432/cargotrans?sslmode=disable}"
 export DATABASE_URL
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
