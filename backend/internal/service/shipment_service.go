@@ -362,7 +362,14 @@ func (s *ShipmentService) ReadyForLoading(ctx context.Context, id string, operat
 }
 
 func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, operatorName, station, transportUnitID *string) (model.Shipment, error) {
-	shipment, err := s.transition(ctx, id, model.ShipmentLoaded, operatorID, operatorName, station, "Shipment loaded", transportUnitID)
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if shipment.ShipmentStatus == model.ShipmentInTransit {
+		return shipment, nil
+	}
+	shipment, err = s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment loaded", transportUnitID)
 	if err != nil {
 		return model.Shipment{}, err
 	}
@@ -376,7 +383,7 @@ func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, opera
 			TransportUnitID: transportUnitID,
 			UserID:          operatorID,
 			OldStatus:       ptr(string(model.ShipmentReadyForLoading)),
-			NewStatus:       ptr(string(model.ShipmentLoaded)),
+			NewStatus:       ptr(string(model.ShipmentInTransit)),
 			ScannedAt:       time.Now().UTC(),
 		})
 	}
@@ -384,6 +391,13 @@ func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, opera
 }
 
 func (s *ShipmentService) Dispatch(ctx context.Context, id string, operatorID, operatorName, station *string) (model.Shipment, error) {
+	shipment, err := s.Get(ctx, id)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	if shipment.ShipmentStatus == model.ShipmentInTransit {
+		return shipment, nil
+	}
 	return s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment dispatched", nil)
 }
 
@@ -900,7 +914,7 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentCreated:           {model.ShipmentPaymentPending, model.ShipmentReadyForLoading, model.ShipmentCancelled, model.ShipmentArrived},
 		model.ShipmentPaymentPending:    {model.ShipmentPaid, model.ShipmentCancelled, model.ShipmentCreated, model.ShipmentCreatedDoor},
 		model.ShipmentPaid:              {model.ShipmentPickupAssigned, model.ShipmentReadyForLoading, model.ShipmentOnHold, model.ShipmentArrived},
-		model.ShipmentReadyForLoading:   {model.ShipmentLoaded, model.ShipmentOnHold, model.ShipmentArrived},
+		model.ShipmentReadyForLoading:   {model.ShipmentLoaded, model.ShipmentInTransit, model.ShipmentOnHold, model.ShipmentArrived},
 		model.ShipmentLoaded:            {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
 		model.ShipmentInTransit:         {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
 		model.ShipmentArrived:           {model.ShipmentReadyForIssue, model.ShipmentDamaged},

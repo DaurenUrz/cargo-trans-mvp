@@ -274,14 +274,27 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "shipment-updated", shipment)
 			writeJSON(w, http.StatusOK, map[string]any{
 				"shipment": shipment,
-				"action":   "LOADED",
-				"message":  "Груз " + shipment.ShipmentNumber + " погружен в поезд ✓",
+				"action":   "IN_TRANSIT",
+				"message":  "Груз " + shipment.ShipmentNumber + " отправлен в транзит ✓",
 			})
 		case model.ShipmentLoaded:
-			writeError(w, http.StatusConflict, "Груз уже погружен")
+			// Transition legacy loaded shipment to InTransit
+			shipment, err := s.services.Shipments.Dispatch(r.Context(), shipmentID, &user.ID, &user.Name, &station)
+			if err != nil {
+				handleServiceError(w, err)
+				return
+			}
+			s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "shipment-updated", shipment)
+			writeJSON(w, http.StatusOK, map[string]any{
+				"shipment": shipment,
+				"action":   "IN_TRANSIT",
+				"message":  "Груз " + shipment.ShipmentNumber + " отправлен в транзит ✓",
+			})
+		case model.ShipmentInTransit:
+			writeError(w, http.StatusConflict, "Груз уже в пути")
 		default:
 			writeError(w, http.StatusUnprocessableEntity,
-				"Груз в статусе «"+string(current.ShipmentStatus)+"» — погрузка невозможна")
+				"Груз в статусе «"+string(current.ShipmentStatus)+"» — отправка невозможна")
 		}
 		return
 	}

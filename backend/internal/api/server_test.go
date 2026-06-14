@@ -133,8 +133,8 @@ func TestPilotLifecycleFlow(t *testing.T) {
 		"current_station": originStation,
 	}, loadingToken)
 	decodeResponse(t, loadResp, &shipment)
-	if shipment.ShipmentStatus != model.ShipmentLoaded {
-		t.Fatalf("expected LOADED, got %s", shipment.ShipmentStatus)
+	if shipment.ShipmentStatus != model.ShipmentInTransit {
+		t.Fatalf("expected IN_TRANSIT, got %s", shipment.ShipmentStatus)
 	}
 
 	dispatchResp := performJSON(t, server.Router(), "POST", "/api/shipments/"+shipment.ID+"/dispatch", map[string]any{
