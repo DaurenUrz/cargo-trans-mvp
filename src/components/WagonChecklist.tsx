@@ -8,6 +8,13 @@ interface WagonShipment {
   shipment_id: string;
   status: 'PENDING' | 'LOADED' | 'UNLOADED' | 'MISSING';
   scanned_at?: string;
+  shipment_number?: string;
+  quantity_places?: number;
+  scanned_places?: {
+    loaded: number[];
+    arrived: number[];
+    issued: number[];
+  };
 }
 
 interface WagonChecklistResponse {
@@ -42,6 +49,8 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
   const [processing, setProcessing] = useState<string | null>(null);
   const [dispatching, setDispatching] = useState(false);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningData, setWarningData] = useState<any[]>([]);
 
   const fetchChecklist = async () => {
     try {
@@ -112,15 +121,42 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
       const result = await res.json();
       if (res.ok) {
         alert(`${result.message || 'Вагон отправлен в рейс!'}`);
+        setShowWarningModal(false);
         await fetchChecklist();
+      } else if (result.warning) {
+        setWarningData(result.missing);
+        setShowWarningModal(true);
       } else {
-        const pending = result.pending ?? '';
-        setDispatchError(
-          `${result.error}${pending ? ` (осталось: ${pending} шт.)` : ''}`
-        );
+        setDispatchError(result.error || 'Ошибка при отправке вагона');
       }
     } catch {
       setDispatchError('Ошибка соединения с сервером');
+    } finally {
+      setDispatching(false);
+    }
+  };
+
+  const confirmForceDispatch = async () => {
+    setDispatching(true);
+    setDispatchError(null);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(withApiBase(`/api/wagons/${wagonId}/dispatch?force=true`), {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const result = await res.json();
+      if (res.ok) {
+        alert(`${result.message || 'Вагон отправлен в рейс!'}`);
+        setShowWarningModal(false);
+        await fetchChecklist();
+      } else {
+        setDispatchError(result.error || 'Ошибка при отправке вагона');
+        setShowWarningModal(false);
+      }
+    } catch {
+      setDispatchError('Ошибка соединения с сервером');
+      setShowWarningModal(false);
     } finally {
       setDispatching(false);
     }
@@ -202,17 +238,17 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
         )}
         <button
           onClick={dispatchWagon}
-          disabled={dispatching}
+          disabled={dispatching || data.total === 0}
           style={{
             width: '100%',
             padding: '12px',
             borderRadius: 10,
             border: 'none',
-            background: data.complete ? '#1d4ed8' : '#1e293b',
-            color: data.complete ? '#fff' : '#475569',
+            background: data.total > 0 ? '#1d4ed8' : '#1e293b',
+            color: data.total > 0 ? '#fff' : '#475569',
             fontSize: 15,
             fontWeight: 700,
-            cursor: data.complete ? 'pointer' : 'not-allowed',
+            cursor: data.total > 0 ? 'pointer' : 'not-allowed',
             opacity: dispatching ? 0.7 : 1,
             transition: 'background 0.2s',
             display: 'flex',
@@ -221,7 +257,7 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
             gap: 8,
           }}
         >
-          {dispatching ? 'Отправка...' : data.complete ? 'Отправить вагон в рейс' : `Не готов (${data.total - data.done} не обработано)`}
+          {dispatching ? 'Отправка...' : 'Подтвердить отправку'}
         </button>
       </div>
 
@@ -249,10 +285,16 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
                   opacity: isLoading ? 0.6 : 1,
                 }}
               >
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <div style={{ fontFamily: 'monospace', fontWeight: 700, color: '#f1f5f9', fontSize: 15 }}>
-                    {ws.shipment_id.slice(0, 8).toUpperCase()}...
+                    {ws.shipment_number || (ws.shipment_id.slice(0, 8).toUpperCase() + '...')}
                   </div>
+                  {ws.quantity_places && ws.quantity_places > 1 && (
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                      Погружено: {ws.scanned_places ? ws.scanned_places.loaded.length : 0} из {ws.quantity_places} мест
+                      {ws.scanned_places && ws.scanned_places.loaded.length > 0 && ` (№ ${ws.scanned_places.loaded.join(', ')})`}
+                    </div>
+                  )}
                   {ws.scanned_at && (
                     <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                       {new Date(ws.scanned_at).toLocaleTimeString('ru')}
@@ -296,6 +338,90 @@ export function WagonChecklist({ wagonId, onClose }: Props) {
           })
         )}
       </div>
+
+      {/* Warning Checklist Modal */}
+      {showWarningModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 50,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#1e293b',
+            borderRadius: 16,
+            width: '100%',
+            maxWidth: 500,
+            border: '1px solid #334155',
+            overflow: 'hidden',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ background: '#7f1d1d', color: '#fff', padding: '16px 20px', fontWeight: 700, fontSize: 16 }}>
+              ⚠️ Внимание: Непогруженные места!
+            </div>
+            <div style={{ padding: 20, color: '#e2e8f0', maxHeight: 300, overflowY: 'auto' }}>
+              <p style={{ fontSize: 14, marginBottom: 14, color: '#94a3b8' }}>
+                Следующие грузы в вагоне погружены не полностью. Вы уверены, что хотите отправить поезд? Непогруженные коробки будут автоматически отмечены как отправленные, а расхождение зафиксируется в аудите.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {warningData.map((item: any) => (
+                  <div key={item.shipment_id} style={{ background: '#0f172a', padding: 12, borderRadius: 10, border: '1px solid #334155' }}>
+                    <div style={{ fontWeight: 700, color: '#3b82f6', fontSize: 14, fontFamily: 'monospace' }}>
+                      {item.shipment_number}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>
+                      Погружено: {item.loaded_places.length} из {item.total_places} мест
+                    </div>
+                    <div style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, marginTop: 4 }}>
+                      Отсутствуют места: {item.missing_places.join(', ')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: '12px 20px', background: '#0f172a', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                onClick={() => setShowWarningModal(false)}
+                style={{
+                  background: '#334155',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: '#fff',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 600
+                }}
+              >
+                Отмена
+              </button>
+              <button
+                onClick={() => confirmForceDispatch()}
+                style={{
+                  background: '#ef4444',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: '#fff',
+                  padding: '8px 16px',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                  fontWeight: 700
+                }}
+              >
+                Отправить принудительно
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

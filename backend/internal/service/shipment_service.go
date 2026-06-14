@@ -278,19 +278,22 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	return created, nil
 }
 
-func (s *ShipmentService) Get(ctx context.Context, id string) (model.Shipment, error) {
-	// Strip suffix in format "-[place]-[total]" where place and total are digits
-	// e.g. "SH-123456-1-5" -> "SH-123456"
-	if strings.HasPrefix(id, "SH-") {
-		if parts := strings.Split(id, "-"); len(parts) >= 3 {
+func parseBarcode(barcode string) (string, int, int) {
+	if strings.HasPrefix(barcode, "SH-") {
+		if parts := strings.Split(barcode, "-"); len(parts) >= 3 {
 			var place, total int
 			_, err1 := fmt.Sscanf(parts[len(parts)-2], "%d", &place)
 			_, err2 := fmt.Sscanf(parts[len(parts)-1], "%d", &total)
 			if err1 == nil && err2 == nil {
-				id = strings.Join(parts[:len(parts)-2], "-")
+				return strings.Join(parts[:len(parts)-2], "-"), place, total
 			}
 		}
 	}
+	return barcode, 1, 1
+}
+
+func (s *ShipmentService) Get(ctx context.Context, id string) (model.Shipment, error) {
+	shipmentNum, _, _ := parseBarcode(id)
 
 	// Try UUID first
 	shipment, err := s.repo.GetShipmentByID(ctx, id)
@@ -298,7 +301,7 @@ func (s *ShipmentService) Get(ctx context.Context, id string) (model.Shipment, e
 		return shipment, nil
 	}
 	// Fallback to ShipmentNumber/TrackingCode
-	return s.repo.GetShipmentByTrackingCode(ctx, id)
+	return s.repo.GetShipmentByTrackingCode(ctx, shipmentNum)
 }
 
 func (s *ShipmentService) List(ctx context.Context, filter model.ShipmentFilter) ([]model.Shipment, error) {
@@ -362,17 +365,61 @@ func (s *ShipmentService) ReadyForLoading(ctx context.Context, id string, operat
 }
 
 func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, operatorName, station, transportUnitID *string) (model.Shipment, error) {
-	shipment, err := s.Get(ctx, id)
+	shipmentNum, placeNum, _ := parseBarcode(id)
+	shipment, err := s.Get(ctx, shipmentNum)
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	if shipment.ShipmentStatus == model.ShipmentInTransit {
-		return shipment, nil
+
+	if shipment.QuantityPlaces > 1 {
+		alreadyLoaded := false
+		for _, p := range shipment.ScannedPlaces.Loaded {
+			if p == placeNum {
+				alreadyLoaded = true
+				break
+			}
+		}
+		if !alreadyLoaded && placeNum >= 1 && placeNum <= shipment.QuantityPlaces {
+			shipment.ScannedPlaces.Loaded = append(shipment.ScannedPlaces.Loaded, placeNum)
+		}
+	} else {
+		shipment.ScannedPlaces.Loaded = []int{1}
 	}
-	shipment, err = s.transition(ctx, id, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment loaded", transportUnitID)
-	if err != nil {
-		return model.Shipment{}, err
+
+	allLoaded := len(shipment.ScannedPlaces.Loaded) >= shipment.QuantityPlaces
+
+	var updated model.Shipment
+	if allLoaded {
+		if shipment.ShipmentStatus == model.ShipmentInTransit {
+			updated, err = s.repo.UpdateShipment(ctx, shipment)
+		} else {
+			updated, err = s.transition(ctx, shipment.ID, model.ShipmentInTransit, operatorID, operatorName, station, "Shipment loaded", transportUnitID)
+			if err == nil {
+				updated.ScannedPlaces = shipment.ScannedPlaces
+				updated, err = s.repo.UpdateShipment(ctx, updated)
+			}
+		}
+		if err != nil {
+			return model.Shipment{}, err
+		}
+
+		if transportUnitID != nil && *transportUnitID != "" && station != nil {
+			if wagons, wErr := s.repo.ListWagons(ctx, *station, nil); wErr == nil {
+				for _, w := range wagons {
+					if w.WagonNumber == *transportUnitID {
+						_ = s.repo.UpdateWagonShipmentStatus(ctx, w.ID, shipment.ID, "LOADED")
+						break
+					}
+				}
+			}
+		}
+	} else {
+		updated, err = s.repo.UpdateShipment(ctx, shipment)
+		if err != nil {
+			return model.Shipment{}, err
+		}
 	}
+
 	if station != nil {
 		_, _ = s.repo.CreateScanEvent(ctx, model.ScanEvent{
 			ID:              uuid.NewString(),
@@ -382,12 +429,13 @@ func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, opera
 			StationID:       station,
 			TransportUnitID: transportUnitID,
 			UserID:          operatorID,
-			OldStatus:       ptr(string(model.ShipmentReadyForLoading)),
-			NewStatus:       ptr(string(model.ShipmentInTransit)),
+			OldStatus:       ptr(string(shipment.ShipmentStatus)),
+			NewStatus:       ptr(string(updated.ShipmentStatus)),
+			Comment:         ptr(fmt.Sprintf("Погружено место %d из %d", placeNum, shipment.QuantityPlaces)),
 			ScannedAt:       time.Now().UTC(),
 		})
 	}
-	return shipment, nil
+	return updated, nil
 }
 
 func (s *ShipmentService) Dispatch(ctx context.Context, id string, operatorID, operatorName, station *string) (model.Shipment, error) {
@@ -447,7 +495,8 @@ func (s *ShipmentService) MarkTransit(ctx context.Context, id string, station st
 }
 
 func (s *ShipmentService) Arrive(ctx context.Context, id string, station string, operatorID, operatorName *string) (model.Shipment, *model.Notification, error) {
-	shipment, err := s.Get(ctx, id)
+	shipmentNum, placeNum, _ := parseBarcode(id)
+	shipment, err := s.Get(ctx, shipmentNum)
 	if err != nil {
 		return model.Shipment{}, nil, err
 	}
@@ -455,20 +504,39 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 	if !IsSameStation(station, shipment.ToStation) {
 		return model.Shipment{}, nil, ErrForbidden
 	}
-	// Re-scan: if already reached final statuses, handle early return but still check for D2D transition if stuck in ARRIVED
-	if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentIssued {
-		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
-			// Continue to D2D transition below
-		} else {
-			return shipment, nil, nil
+
+	if shipment.QuantityPlaces > 1 {
+		alreadyArrived := false
+		for _, p := range shipment.ScannedPlaces.Arrived {
+			if p == placeNum {
+				alreadyArrived = true
+				break
+			}
 		}
+		if !alreadyArrived && placeNum >= 1 && placeNum <= shipment.QuantityPlaces {
+			shipment.ScannedPlaces.Arrived = append(shipment.ScannedPlaces.Arrived, placeNum)
+		}
+	} else {
+		shipment.ScannedPlaces.Arrived = []int{1}
 	}
 
-	if shipment.ShipmentStatus != model.ShipmentArrived && shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentIssued {
-		shipment, err = s.transition(ctx, id, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
+	allArrived := len(shipment.ScannedPlaces.Arrived) >= shipment.QuantityPlaces
+
+	var updated model.Shipment
+	if allArrived {
+		if shipment.ShipmentStatus == model.ShipmentArrived || shipment.ShipmentStatus == model.ShipmentReadyForIssue || shipment.ShipmentStatus == model.ShipmentIssued {
+			updated, err = s.repo.UpdateShipment(ctx, shipment)
+		} else {
+			updated, err = s.transition(ctx, shipment.ID, model.ShipmentArrived, operatorID, operatorName, &station, "Shipment arrived", nil)
+			if err == nil {
+				updated.ScannedPlaces = shipment.ScannedPlaces
+				updated, err = s.repo.UpdateShipment(ctx, updated)
+			}
+		}
 		if err != nil {
 			return model.Shipment{}, nil, err
 		}
+
 		_, _ = s.repo.CreateArrivalEvent(ctx, model.ArrivalEvent{
 			ID:                      uuid.NewString(),
 			ShipmentID:              shipment.ID,
@@ -477,34 +545,36 @@ func (s *ShipmentService) Arrive(ctx context.Context, id string, station string,
 			EventTime:               time.Now().UTC(),
 			ConfirmedAsFinalArrival: true,
 		})
-	}
-
-	// Internal notification (app-only, not SMS)
-	message := fmt.Sprintf("Ваш груз %s прибыл в пункт назначения %s", shipment.ShipmentNumber, station)
-	if shipment.IsDoorToDoor {
-		message = fmt.Sprintf("Ваш груз %s прибыл в %s. Курьер скоро доставит его по адресу.", shipment.ShipmentNumber, station)
-	}
-	notification, err := s.repo.CreateNotification(ctx, model.Notification{
-		UserID:    shipment.ClientID,
-		Message:   message,
-		Type:      "shipment_arrival",
-		RelatedID: ptr(shipment.ID),
-		CreatedAt: time.Now().UTC(),
-	})
-	if err != nil {
-		return shipment, nil, nil
-	}
-
-
-	if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentArrived {
-		// Автоматически переводим в READY_FOR_ISSUE, чтобы курьер увидел задачу
-		shipment, err = s.transition(ctx, id, model.ShipmentReadyForIssue, operatorID, operatorName, &station, "Ready for delivery task", nil)
+	} else {
+		updated, err = s.repo.UpdateShipment(ctx, shipment)
 		if err != nil {
 			return model.Shipment{}, nil, err
 		}
 	}
 
-	return shipment, &notification, nil
+	var notification model.Notification
+	if allArrived {
+		message := fmt.Sprintf("Ваш груз %s прибыл в пункт назначения %s", shipment.ShipmentNumber, station)
+		if shipment.IsDoorToDoor {
+			message = fmt.Sprintf("Ваш груз %s прибыл в %s. Курьер скоро доставит его по адресу.", shipment.ShipmentNumber, station)
+		}
+		notification, err = s.repo.CreateNotification(ctx, model.Notification{
+			UserID:    shipment.ClientID,
+			Message:   message,
+			Type:      "shipment_arrival",
+			RelatedID: ptr(shipment.ID),
+			CreatedAt: time.Now().UTC(),
+		})
+		if err == nil && shipment.IsDoorToDoor && updated.ShipmentStatus == model.ShipmentArrived {
+			updated, err = s.transition(ctx, shipment.ID, model.ShipmentReadyForIssue, operatorID, operatorName, &station, "Ready for delivery task", nil)
+			if err == nil {
+				updated.ScannedPlaces = shipment.ScannedPlaces
+				updated, _ = s.repo.UpdateShipment(ctx, updated)
+			}
+		}
+	}
+
+	return updated, &notification, nil
 }
 
 func (s *ShipmentService) ReadyForIssue(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
@@ -516,11 +586,12 @@ func (s *ShipmentService) Issue(ctx context.Context, id string, operatorID, oper
 }
 
 func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, operatorID, operatorName *string, req IssueRequest) (model.Shipment, error) {
-	shipment, err := s.Get(ctx, id)
+	shipmentNum, placeNum, _ := parseBarcode(id)
+	shipment, err := s.Get(ctx, shipmentNum)
 	if err != nil {
 		return model.Shipment{}, err
 	}
-	if shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentArrived && shipment.ShipmentStatus != model.ShipmentDeliveryAssigned {
+	if shipment.ShipmentStatus != model.ShipmentReadyForIssue && shipment.ShipmentStatus != model.ShipmentArrived && shipment.ShipmentStatus != model.ShipmentDeliveryAssigned && shipment.ShipmentStatus != model.ShipmentIssued {
 		return model.Shipment{}, ErrInvalidTransition
 	}
 	if shipment.PaymentRequired {
@@ -534,7 +605,45 @@ func (s *ShipmentService) IssueWithVerification(ctx context.Context, id string, 
 		}
 	}
 
-	return s.transition(ctx, id, model.ShipmentIssued, operatorID, operatorName, nil, "Issued to receiver", nil)
+	if shipment.QuantityPlaces > 1 {
+		alreadyIssued := false
+		for _, p := range shipment.ScannedPlaces.Issued {
+			if p == placeNum {
+				alreadyIssued = true
+				break
+			}
+		}
+		if !alreadyIssued && placeNum >= 1 && placeNum <= shipment.QuantityPlaces {
+			shipment.ScannedPlaces.Issued = append(shipment.ScannedPlaces.Issued, placeNum)
+		}
+	} else {
+		shipment.ScannedPlaces.Issued = []int{1}
+	}
+
+	allIssued := len(shipment.ScannedPlaces.Issued) >= shipment.QuantityPlaces
+
+	var updated model.Shipment
+	if allIssued {
+		if shipment.ShipmentStatus == model.ShipmentIssued {
+			updated, err = s.repo.UpdateShipment(ctx, shipment)
+		} else {
+			updated, err = s.transition(ctx, shipment.ID, model.ShipmentIssued, operatorID, operatorName, nil, "Issued to receiver", nil)
+			if err == nil {
+				updated.ScannedPlaces = shipment.ScannedPlaces
+				updated, err = s.repo.UpdateShipment(ctx, updated)
+			}
+		}
+		if err != nil {
+			return model.Shipment{}, err
+		}
+	} else {
+		updated, err = s.repo.UpdateShipment(ctx, shipment)
+		if err != nil {
+			return model.Shipment{}, err
+		}
+	}
+
+	return updated, nil
 }
 
 func (s *ShipmentService) TakeDelivery(ctx context.Context, id string, operatorID, operatorName string) (model.Shipment, error) {

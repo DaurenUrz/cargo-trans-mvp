@@ -1,13 +1,20 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"cargo/backend/internal/model"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
+
+func ptr[T any](v T) *T {
+	return &v
+}
 
 func (s *Server) mountWagonRoutes(r chi.Router) {
 	r.Get("/wagons", s.handleListWagons)
@@ -218,32 +225,133 @@ func (s *Server) handleDispatchWagon(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	wagonID := chi.URLParam(r, "id")
+	force := r.URL.Query().Get("force") == "true"
 
-	wagon, checklist, total, done, err := s.services.Wagons.GetChecklist(r.Context(), wagonID)
+	wagon, checklist, _, _, err := s.services.Wagons.GetChecklist(r.Context(), wagonID)
 	if err != nil {
 		handleServiceError(w, err)
 		return
 	}
 
-	// Считаем незавершённые (только PENDING блокирует отправку)
-	pending := 0
+	type MissingShipmentItem struct {
+		ShipmentID     string `json:"shipment_id"`
+		ShipmentNumber string `json:"shipment_number"`
+		TotalPlaces    int    `json:"total_places"`
+		LoadedPlaces   []int  `json:"loaded_places"`
+		MissingPlaces  []int  `json:"missing_places"`
+	}
+
+	var missingItems []MissingShipmentItem
+
 	for _, ws := range checklist {
 		if ws.Status == "PENDING" {
-			pending++
+			total := ws.QuantityPlaces
+			if total <= 0 {
+				total = 1
+			}
+			var loaded []int
+			if ws.ScannedPlaces != nil {
+				loaded = ws.ScannedPlaces.Loaded
+			}
+			
+			// Find missing place numbers
+			var missing []int
+			for i := 1; i <= total; i++ {
+				found := false
+				for _, l := range loaded {
+					if l == i {
+						found = true
+						break
+					}
+				}
+				if !found {
+					missing = append(missing, i)
+				}
+			}
+
+			if len(missing) > 0 {
+				missingItems = append(missingItems, MissingShipmentItem{
+					ShipmentID:     ws.ShipmentID,
+					ShipmentNumber: ws.ShipmentNumber,
+					TotalPlaces:    total,
+					LoadedPlaces:   loaded,
+					MissingPlaces:  missing,
+				})
+			}
 		}
 	}
 
-	if pending > 0 {
+	if len(missingItems) > 0 && !force {
 		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error":   "Нельзя отправить вагон: не все грузы погружены или отмечены как утерянные",
-			"total":   total,
-			"done":    done,
-			"pending": pending,
+			"warning": "Обнаружены непогруженные места",
+			"missing": missingItems,
 		})
 		return
 	}
 
-	// Все грузы готовы — меняем статус вагона на IN_TRANSIT
+	// If force or no missing items, proceed to dispatch!
+	// 1. Process force loaded shipments
+	for _, mi := range missingItems {
+		shipment, err := s.services.Shipments.Get(r.Context(), mi.ShipmentID)
+		if err != nil {
+			continue
+		}
+		
+		// Fill loaded array with all places
+		var allPlaces []int
+		for i := 1; i <= mi.TotalPlaces; i++ {
+			allPlaces = append(allPlaces, i)
+		}
+		shipment.ScannedPlaces.Loaded = allPlaces
+
+		// Force transition to IN_TRANSIT
+		if shipment.ShipmentStatus != model.ShipmentInTransit {
+			shipment.ShipmentStatus = model.ShipmentInTransit
+			shipment.Status = "В пути"
+		}
+		shipment.UpdatedAt = time.Now().UTC()
+		shipment.LastUpdatedAt = shipment.UpdatedAt
+		_, _ = s.services.Shipments.Repo().UpdateShipment(r.Context(), shipment)
+
+		// Set checklist item to LOADED
+		_ = s.services.Shipments.Repo().UpdateWagonShipmentStatus(r.Context(), wagonID, mi.ShipmentID, "LOADED")
+
+		// Create scan event
+		_, _ = s.services.Shipments.Repo().CreateScanEvent(r.Context(), model.ScanEvent{
+			ID:              uuid.NewString(),
+			ShipmentID:      shipment.ID,
+			QRCodeID:        shipment.QRCodeID,
+			EventType:       "LOAD",
+			StationID:       &user.Station,
+			TransportUnitID: &wagon.WagonNumber,
+			UserID:          &user.ID,
+			OldStatus:       ptr(string(model.ShipmentReadyForLoading)),
+			NewStatus:       ptr(string(model.ShipmentInTransit)),
+			Comment:         ptr("Принудительная погрузка при отправке вагона"),
+			ScannedAt:       time.Now().UTC(),
+		})
+
+		// Write warning log to Audit Log
+		var missingStr []string
+		for _, m := range mi.MissingPlaces {
+			missingStr = append(missingStr, fmt.Sprintf("%d", m))
+		}
+		auditComment := fmt.Sprintf("ВНИМАНИЕ: Принудительная погрузка. Груз %s отправлен в вагоне %s (отсутствовали места: %s)", 
+			mi.ShipmentNumber, wagon.WagonNumber, strings.Join(missingStr, ", "))
+			
+		_ = s.services.Shipments.Repo().AddAuditLog(r.Context(), model.AuditLog{
+			ID:         uuid.NewString(),
+			UserID:     &user.ID,
+			EntityType: "shipment",
+			EntityID:   shipment.ID,
+			Action:     "FORCE_LOADED",
+			NewValue:   ptr(auditComment),
+			StationID:  &user.Station,
+			CreatedAt:  time.Now().UTC(),
+		})
+	}
+
+	// Change wagon status to IN_TRANSIT
 	wagon.Status = model.WagonInTransit
 	wagon.UpdatedAt = time.Now().UTC()
 	updated, err := s.services.Wagons.DispatchWagon(r.Context(), wagon)
@@ -253,6 +361,6 @@ func (s *Server) handleDispatchWagon(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"wagon":   updated,
-		"message": "Вагон отправлен в рейс",
+		"message": "Вагон успешно отправлен в рейс",
 	})
 }

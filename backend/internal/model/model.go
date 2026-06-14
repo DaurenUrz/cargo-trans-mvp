@@ -119,6 +119,12 @@ type Station struct {
 	IsActive bool   `json:"is_active"`
 }
 
+type ScannedPlaces struct {
+	Loaded  []int `json:"loaded"`
+	Arrived []int `json:"arrived"`
+	Issued  []int `json:"issued"`
+}
+
 type Shipment struct {
 	ID              string            `json:"id"`
 	ShipmentNumber  string            `json:"shipment_number"`
@@ -141,6 +147,7 @@ type Shipment struct {
 	Value           string            `json:"value"`
 	Cost            float64           `json:"cost"`
 	QuantityPlaces  int               `json:"quantity_places"`
+	ScannedPlaces   ScannedPlaces     `json:"scanned_places" db:"scanned_places"`
 	ReceiverName    *string           `json:"receiver_name,omitempty"`
 	ReceiverPhone   *string           `json:"receiver_phone,omitempty"`
 	SenderPhone     *string           `json:"sender_phone,omitempty"`
@@ -329,11 +336,14 @@ type Wagon struct {
 }
 
 type WagonShipment struct {
-	ID         string     `json:"id"`
-	WagonID    string     `json:"wagon_id"`
-	ShipmentID string     `json:"shipment_id"`
-	Status     string     `json:"status"` // E.g., "PENDING", "LOADED", "MISSING"
-	ScannedAt  *time.Time `json:"scanned_at,omitempty"`
+	ID             string         `json:"id"`
+	WagonID        string         `json:"wagon_id"`
+	ShipmentID     string         `json:"shipment_id"`
+	Status         string         `json:"status"` // E.g., "PENDING", "LOADED", "MISSING"
+	ScannedAt      *time.Time     `json:"scanned_at,omitempty"`
+	ShipmentNumber string         `json:"shipment_number,omitempty"`
+	QuantityPlaces int            `json:"quantity_places,omitempty"`
+	ScannedPlaces  *ScannedPlaces `json:"scanned_places,omitempty"`
 }
 
 type ActionContext struct {

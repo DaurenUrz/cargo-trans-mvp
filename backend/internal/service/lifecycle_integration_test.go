@@ -64,6 +64,12 @@ func (m *MockFullRepo) CreateScanEvent(ctx context.Context, e model.ScanEvent) (
 func (m *MockFullRepo) ListScanEvents(ctx context.Context, id string) ([]model.ScanEvent, error) {
 	return m.scans, nil
 }
+func (m *MockFullRepo) ListWagons(ctx context.Context, station string, status *model.WagonStatus) ([]model.Wagon, error) {
+	if m.wagon.WagonNumber == "" {
+		return []model.Wagon{{ID: "wagon-1", WagonNumber: "W-001", CurrentStation: station}}, nil
+	}
+	return []model.Wagon{m.wagon}, nil
+}
 
 func TestFullLifecycle_AstanaToAlmaty(t *testing.T) {
 	repo := &MockFullRepo{}

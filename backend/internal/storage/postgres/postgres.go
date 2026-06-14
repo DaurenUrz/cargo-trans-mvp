@@ -324,21 +324,23 @@ func (r *Repository) UpsertStationByCode(ctx context.Context, station model.Stat
 
 func (r *Repository) CreateShipment(ctx context.Context, shipment model.Shipment) (model.Shipment, error) {
 	routeJSON, _ := json.Marshal(shipment.Route)
+	scannedPlacesJSON, _ := json.Marshal(shipment.ScannedPlaces)
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO shipments (
 			id, shipment_number, client_id, client_name, client_login, from_station, to_station, current_station, next_station, route,
 			status, shipment_status, payment_status, departure_date, weight, dimensions, description, value, cost, quantity_places,
 			receiver_name, receiver_phone, sender_phone, tracking_code, qr_code_id, transport_unit_id,
 			is_door_to_door, pickup_address, delivery_address, door_to_door_phone,
-			payment_required, extra_charge, pickup_code, issue_code, has_ticket, ticket_number, last_updated_at, created_by, created_at, updated_at
+			payment_required, extra_charge, pickup_code, issue_code, has_ticket, ticket_number, last_updated_at, created_by, created_at, updated_at, scanned_places
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
 			$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,
 			$21,$22,$23,$24,$25,$26,
 			$27,$28,$29,$30,
-			$31,$32,$33,$34,$35,$36,$37,$38,$39,$40
+			$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,
+			$41
 		)
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientLogin, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.HasTicket, shipment.TicketNumber, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientLogin, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.HasTicket, shipment.TicketNumber, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.CreatedAt, shipment.UpdatedAt, scannedPlacesJSON)
 	return shipment, err
 }
 
@@ -422,6 +424,7 @@ func (r *Repository) ListShipmentsByStatus(ctx context.Context, status model.Shi
 
 func (r *Repository) UpdateShipment(ctx context.Context, shipment model.Shipment) (model.Shipment, error) {
 	routeJSON, _ := json.Marshal(shipment.Route)
+	scannedPlacesJSON, _ := json.Marshal(shipment.ScannedPlaces)
 	_, err := r.pool.Exec(ctx, `
 		UPDATE shipments SET
 			shipment_number = $2,
@@ -462,9 +465,10 @@ func (r *Repository) UpdateShipment(ctx context.Context, shipment model.Shipment
 			ticket_number = $37,
 			last_updated_at = $38,
 			created_by = $39,
-			updated_at = $40
+			updated_at = $40,
+			scanned_places = $41
 		WHERE id = $1
-	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientLogin, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.CourierID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.HasTicket, shipment.TicketNumber, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt)
+	`, shipment.ID, shipment.ShipmentNumber, shipment.ClientID, shipment.ClientName, shipment.ClientLogin, shipment.FromStation, shipment.ToStation, shipment.CurrentStation, shipment.NextStation, routeJSON, shipment.Status, shipment.ShipmentStatus, shipment.PaymentStatus, shipment.DepartureDate, shipment.Weight, shipment.Dimensions, shipment.Description, shipment.Value, shipment.Cost, shipment.QuantityPlaces, shipment.ReceiverName, shipment.ReceiverPhone, shipment.SenderPhone, shipment.TrackingCode, shipment.QRCodeID, shipment.TransportUnitID, shipment.CourierID, shipment.IsDoorToDoor, shipment.PickupAddress, shipment.DeliveryAddress, shipment.DoorToDoorPhone, shipment.PaymentRequired, shipment.ExtraCharge, shipment.PickupCode, shipment.IssueCode, shipment.HasTicket, shipment.TicketNumber, shipment.LastUpdatedAt, shipment.CreatedBy, shipment.UpdatedAt, scannedPlacesJSON)
 	return shipment, err
 }
 
@@ -819,7 +823,7 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 }
 
 const userSelect = `SELECT id, name, login, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
-const shipmentSelect = `SELECT s.id, s.shipment_number, s.client_id, s.client_name, s.client_login, s.from_station, s.to_station, s.current_station, s.next_station, s.route, s.status, s.shipment_status, s.payment_status, s.departure_date, s.weight, s.dimensions, s.description, s.value, s.cost, s.quantity_places, s.receiver_name, s.receiver_phone, s.sender_phone, s.tracking_code, s.qr_code_id, s.transport_unit_id, COALESCE(s.courier_id, '') as courier_id, s.is_door_to_door, s.pickup_address, s.delivery_address, s.door_to_door_phone, s.payment_required, s.extra_charge, s.pickup_code, s.issue_code, s.has_ticket, COALESCE(s.ticket_number, '') as ticket_number, s.last_updated_at, s.created_by, s.created_at, s.updated_at, COALESCE(u.role, 'individual') as client_role FROM shipments s LEFT JOIN users u ON s.client_id = u.id`
+const shipmentSelect = `SELECT s.id, s.shipment_number, s.client_id, s.client_name, s.client_login, s.from_station, s.to_station, s.current_station, s.next_station, s.route, s.status, s.shipment_status, s.payment_status, s.departure_date, s.weight, s.dimensions, s.description, s.value, s.cost, s.quantity_places, s.scanned_places, s.receiver_name, s.receiver_phone, s.sender_phone, s.tracking_code, s.qr_code_id, s.transport_unit_id, COALESCE(s.courier_id, '') as courier_id, s.is_door_to_door, s.pickup_address, s.delivery_address, s.door_to_door_phone, s.payment_required, s.extra_charge, s.pickup_code, s.issue_code, s.has_ticket, COALESCE(s.ticket_number, '') as ticket_number, s.last_updated_at, s.created_by, s.created_at, s.updated_at, COALESCE(u.role, 'individual') as client_role FROM shipments s LEFT JOIN users u ON s.client_id = u.id`
 
 func scanUser(row pgx.Row) (model.User, error) {
 	var user model.User
@@ -846,7 +850,8 @@ func scanShipment(row pgx.Row) (model.Shipment, error) {
 	var shipment model.Shipment
 	var routeRaw []byte
 	var courierID string
-	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.HasTicket, &shipment.TicketNumber, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.ClientRole)
+	var scannedPlacesRaw []byte
+	err := row.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &scannedPlacesRaw, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.HasTicket, &shipment.TicketNumber, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.ClientRole)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return model.Shipment{}, service.ErrNotFound
 	}
@@ -857,6 +862,11 @@ func scanShipment(row pgx.Row) (model.Shipment, error) {
 		shipment.CourierID = &courierID
 	}
 	_ = json.Unmarshal(routeRaw, &shipment.Route)
+	if len(scannedPlacesRaw) > 0 {
+		_ = json.Unmarshal(scannedPlacesRaw, &shipment.ScannedPlaces)
+	} else {
+		shipment.ScannedPlaces = model.ScannedPlaces{Loaded: []int{}, Arrived: []int{}, Issued: []int{}}
+	}
 	return shipment, nil
 }
 
@@ -866,13 +876,19 @@ func collectShipments(rows pgx.Rows) ([]model.Shipment, error) {
 		var shipment model.Shipment
 		var routeRaw []byte
 		var courierID string
-		if err := rows.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.HasTicket, &shipment.TicketNumber, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.ClientRole); err != nil {
+		var scannedPlacesRaw []byte
+		if err := rows.Scan(&shipment.ID, &shipment.ShipmentNumber, &shipment.ClientID, &shipment.ClientName, &shipment.ClientLogin, &shipment.FromStation, &shipment.ToStation, &shipment.CurrentStation, &shipment.NextStation, &routeRaw, &shipment.Status, &shipment.ShipmentStatus, &shipment.PaymentStatus, &shipment.DepartureDate, &shipment.Weight, &shipment.Dimensions, &shipment.Description, &shipment.Value, &shipment.Cost, &shipment.QuantityPlaces, &scannedPlacesRaw, &shipment.ReceiverName, &shipment.ReceiverPhone, &shipment.SenderPhone, &shipment.TrackingCode, &shipment.QRCodeID, &shipment.TransportUnitID, &courierID, &shipment.IsDoorToDoor, &shipment.PickupAddress, &shipment.DeliveryAddress, &shipment.DoorToDoorPhone, &shipment.PaymentRequired, &shipment.ExtraCharge, &shipment.PickupCode, &shipment.IssueCode, &shipment.HasTicket, &shipment.TicketNumber, &shipment.LastUpdatedAt, &shipment.CreatedBy, &shipment.CreatedAt, &shipment.UpdatedAt, &shipment.ClientRole); err != nil {
 			return nil, err
 		}
 		if courierID != "" {
 			shipment.CourierID = &courierID
 		}
 		_ = json.Unmarshal(routeRaw, &shipment.Route)
+		if len(scannedPlacesRaw) > 0 {
+			_ = json.Unmarshal(scannedPlacesRaw, &shipment.ScannedPlaces)
+		} else {
+			shipment.ScannedPlaces = model.ScannedPlaces{Loaded: []int{}, Arrived: []int{}, Issued: []int{}}
+		}
 		items = append(items, shipment)
 	}
 	return items, rows.Err()
@@ -980,7 +996,12 @@ func (r *Repository) RemoveShipmentFromWagon(ctx context.Context, wagonID, shipm
 
 func (r *Repository) GetWagonShipments(ctx context.Context, wagonID string) ([]model.WagonShipment, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, wagon_id, shipment_id, status, scanned_at FROM wagon_shipments WHERE wagon_id = $1 ORDER BY shipment_id
+		SELECT ws.id, ws.wagon_id, ws.shipment_id, ws.status, ws.scanned_at,
+		       s.shipment_number, s.quantity_places, s.scanned_places
+		FROM wagon_shipments ws
+		LEFT JOIN shipments s ON ws.shipment_id = s.id
+		WHERE ws.wagon_id = $1
+		ORDER BY s.shipment_number
 	`, wagonID)
 	if err != nil {
 		return nil, err
@@ -989,8 +1010,16 @@ func (r *Repository) GetWagonShipments(ctx context.Context, wagonID string) ([]m
 	items := []model.WagonShipment{}
 	for rows.Next() {
 		var ws model.WagonShipment
-		if err := rows.Scan(&ws.ID, &ws.WagonID, &ws.ShipmentID, &ws.Status, &ws.ScannedAt); err != nil {
+		var scannedPlacesRaw []byte
+		if err := rows.Scan(&ws.ID, &ws.WagonID, &ws.ShipmentID, &ws.Status, &ws.ScannedAt,
+		                    &ws.ShipmentNumber, &ws.QuantityPlaces, &scannedPlacesRaw); err != nil {
 			return nil, err
+		}
+		if len(scannedPlacesRaw) > 0 {
+			var sp model.ScannedPlaces
+			if err := json.Unmarshal(scannedPlacesRaw, &sp); err == nil {
+				ws.ScannedPlaces = &sp
+			}
 		}
 		items = append(items, ws)
 	}
