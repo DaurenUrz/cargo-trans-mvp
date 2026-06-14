@@ -1,6 +1,5 @@
 import { withApiBase } from "../lib/api-base";
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { Activity, Search, Filter, RefreshCw, Package, X } from 'lucide-react';
 
 interface AuditLog {
@@ -57,7 +56,7 @@ const STATUS_LABELS: Record<string, string> = {
   AT_STATION_INTAKE:  'Принята на склад',
   READY_FOR_LOADING:  'Готова к погрузке',
   LOADED:             'В вагоне',
-  IN_TRANSIT:         'В транзите',
+  IN_TRANSIT:         'В пути',
   ARRIVED:            'Прибыла',
   READY_FOR_ISSUE:    'Готова к выдаче',
   DELIVERY_ASSIGNED:  'Курьер забирает из отделения',
@@ -135,7 +134,6 @@ function getActionColor(action: string, isDark: boolean) {
 
 export function AuditLog({ theme }: { theme?: 'light' | 'dark' }) {
   const isDark = theme === 'dark';
-  const { user } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
