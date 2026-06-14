@@ -475,6 +475,10 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                     sessionStorage.removeItem('pending_shipment_data');
                     sessionStorage.removeItem('pending_shipment_step');
                     setCurrentStep('client');
+                    setIsSubmitting(false);
+                    isSubmittingRef.current = false;
+                    setCreatedShipmentNumber(null);
+                    setCreatedShipmentId(null);
 
                     setShipmentData({
                       clientId: '',
