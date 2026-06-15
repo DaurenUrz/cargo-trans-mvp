@@ -822,6 +822,84 @@ func (r *Repository) GetStatusSummary(ctx context.Context) ([]model.StatusSummar
 	return items, rows.Err()
 }
 
+func (r *Repository) GetLeaderDashboardReport(ctx context.Context) (model.LeaderDashboardReport, error) {
+	var report model.LeaderDashboardReport
+	report.StatusSummary = []model.StatusSummaryItem{}
+	report.EmployeeStats = []model.EmployeeStat{}
+
+	// 1. Total Weight and Places
+	queryTotals := `
+		SELECT 
+			COALESCE(SUM(CAST(NULLIF(regexp_replace(weight, '[^0-9.]', '', 'g'), '') AS NUMERIC)), 0) as total_weight,
+			COALESCE(SUM(quantity_places), 0) as total_places
+		FROM shipments
+	`
+	err := r.pool.QueryRow(ctx, queryTotals).Scan(&report.TotalWeightKg, &report.TotalPlaces)
+	if err != nil {
+		return report, err
+	}
+
+	// 2. Status Distribution
+	rowsStatus, err := r.pool.Query(ctx, `
+		SELECT shipment_status, COUNT(*) 
+		FROM shipments 
+		GROUP BY shipment_status 
+		ORDER BY shipment_status
+	`)
+	if err != nil {
+		return report, err
+	}
+	defer rowsStatus.Close()
+	for rowsStatus.Next() {
+		var item model.StatusSummaryItem
+		if err := rowsStatus.Scan(&item.Status, &item.Count); err != nil {
+			return report, err
+		}
+		report.StatusSummary = append(report.StatusSummary, item)
+	}
+
+	// 3. Employee Stats (created and scanned counts per employee)
+	queryEmployees := `
+		WITH created_stats AS (
+			SELECT created_by as user_id, COUNT(*) as count
+			FROM shipments
+			WHERE created_by IS NOT NULL
+			GROUP BY 1
+		),
+		scanned_stats AS (
+			SELECT user_id, COUNT(*) as count
+			FROM scan_events
+			WHERE user_id IS NOT NULL
+			GROUP BY 1
+		)
+		SELECT 
+			u.name, 
+			u.role, 
+			COALESCE(c.count, 0) as created_count,
+			COALESCE(s.count, 0) as scanned_count
+		FROM users u
+		LEFT JOIN created_stats c ON u.id = c.user_id
+		LEFT JOIN scanned_stats s ON u.id = s.user_id
+		WHERE u.role IN ('manager', 'receiver', 'train_receiver', 'mobile_group', 'courier', 'admin')
+		  AND (COALESCE(c.count, 0) > 0 OR COALESCE(s.count, 0) > 0)
+		ORDER BY u.name
+	`
+	rowsEmp, err := r.pool.Query(ctx, queryEmployees)
+	if err != nil {
+		return report, err
+	}
+	defer rowsEmp.Close()
+	for rowsEmp.Next() {
+		var item model.EmployeeStat
+		if err := rowsEmp.Scan(&item.Name, &item.Role, &item.CreatedCount, &item.ScannedCount); err != nil {
+			return report, err
+		}
+		report.EmployeeStats = append(report.EmployeeStats, item)
+	}
+
+	return report, nil
+}
+
 const userSelect = `SELECT id, name, login, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`
 const shipmentSelect = `SELECT s.id, s.shipment_number, s.client_id, s.client_name, s.client_login, s.from_station, s.to_station, s.current_station, s.next_station, s.route, s.status, s.shipment_status, s.payment_status, s.departure_date, s.weight, s.dimensions, s.description, s.value, s.cost, s.quantity_places, s.scanned_places, s.receiver_name, s.receiver_phone, s.sender_phone, s.tracking_code, s.qr_code_id, s.transport_unit_id, COALESCE(s.courier_id, '') as courier_id, s.is_door_to_door, s.pickup_address, s.delivery_address, s.door_to_door_phone, s.payment_required, s.extra_charge, s.pickup_code, s.issue_code, s.has_ticket, COALESCE(s.ticket_number, '') as ticket_number, s.last_updated_at, s.created_by, s.created_at, s.updated_at, COALESCE(u.role, 'individual') as client_role FROM shipments s LEFT JOIN users u ON s.client_id = u.id`
 
@@ -865,7 +943,7 @@ func scanShipment(row pgx.Row) (model.Shipment, error) {
 	if len(scannedPlacesRaw) > 0 {
 		_ = json.Unmarshal(scannedPlacesRaw, &shipment.ScannedPlaces)
 	} else {
-		shipment.ScannedPlaces = model.ScannedPlaces{Loaded: []int{}, Arrived: []int{}, Issued: []int{}}
+		shipment.ScannedPlaces = model.ScannedPlaces{Received: []int{}, Loaded: []int{}, Arrived: []int{}, Issued: []int{}}
 	}
 	return shipment, nil
 }
@@ -887,7 +965,7 @@ func collectShipments(rows pgx.Rows) ([]model.Shipment, error) {
 		if len(scannedPlacesRaw) > 0 {
 			_ = json.Unmarshal(scannedPlacesRaw, &shipment.ScannedPlaces)
 		} else {
-			shipment.ScannedPlaces = model.ScannedPlaces{Loaded: []int{}, Arrived: []int{}, Issued: []int{}}
+			shipment.ScannedPlaces = model.ScannedPlaces{Received: []int{}, Loaded: []int{}, Arrived: []int{}, Issued: []int{}}
 		}
 		items = append(items, shipment)
 	}

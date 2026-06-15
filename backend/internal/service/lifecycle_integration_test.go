@@ -70,6 +70,9 @@ func (m *MockFullRepo) ListWagons(ctx context.Context, station string, status *m
 	}
 	return []model.Wagon{m.wagon}, nil
 }
+func (m *MockFullRepo) GetLeaderDashboardReport(ctx context.Context) (model.LeaderDashboardReport, error) {
+	return model.LeaderDashboardReport{}, nil
+}
 
 func TestFullLifecycle_AstanaToAlmaty(t *testing.T) {
 	repo := &MockFullRepo{}

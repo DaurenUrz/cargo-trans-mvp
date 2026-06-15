@@ -361,7 +361,43 @@ func (s *ShipmentService) CourierHandover(ctx context.Context, id string, operat
 }
 
 func (s *ShipmentService) ReadyForLoading(ctx context.Context, id string, operatorID, operatorName *string) (model.Shipment, error) {
-	return s.transition(ctx, id, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
+	shipmentNum, placeNum, _ := parseBarcode(id)
+	shipment, err := s.Get(ctx, shipmentNum)
+	if err != nil {
+		return model.Shipment{}, err
+	}
+
+	if shipment.QuantityPlaces > 1 {
+		alreadyReceived := false
+		for _, p := range shipment.ScannedPlaces.Received {
+			if p == placeNum {
+				alreadyReceived = true
+				break
+			}
+		}
+		if !alreadyReceived && placeNum >= 1 && placeNum <= shipment.QuantityPlaces {
+			shipment.ScannedPlaces.Received = append(shipment.ScannedPlaces.Received, placeNum)
+		}
+	} else {
+		shipment.ScannedPlaces.Received = []int{1}
+	}
+
+	allReceived := len(shipment.ScannedPlaces.Received) >= shipment.QuantityPlaces
+
+	var updated model.Shipment
+	if allReceived {
+		updated, err = s.transition(ctx, shipmentNum, model.ShipmentReadyForLoading, operatorID, operatorName, nil, "Ready for loading", nil)
+		if err == nil {
+			updated.ScannedPlaces = shipment.ScannedPlaces
+			updated, err = s.repo.UpdateShipment(ctx, updated)
+		}
+	} else {
+		updated, err = s.repo.UpdateShipment(ctx, shipment)
+	}
+	if err != nil {
+		return model.Shipment{}, err
+	}
+	return updated, nil
 }
 
 func (s *ShipmentService) Load(ctx context.Context, id string, operatorID, operatorName, station, transportUnitID *string) (model.Shipment, error) {

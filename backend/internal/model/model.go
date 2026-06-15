@@ -120,9 +120,10 @@ type Station struct {
 }
 
 type ScannedPlaces struct {
-	Loaded  []int `json:"loaded"`
-	Arrived []int `json:"arrived"`
-	Issued  []int `json:"issued"`
+	Received []int `json:"received"`
+	Loaded   []int `json:"loaded"`
+	Arrived  []int `json:"arrived"`
+	Issued   []int `json:"issued"`
 }
 
 type Shipment struct {
@@ -301,6 +302,20 @@ type FinanceReport struct {
 type StatusSummaryItem struct {
 	Status string `json:"status"`
 	Count  int    `json:"count"`
+}
+
+type EmployeeStat struct {
+	Name         string `json:"name"`
+	Role         string `json:"role"`
+	CreatedCount int    `json:"created_count"`
+	ScannedCount int    `json:"scanned_count"`
+}
+
+type LeaderDashboardReport struct {
+	TotalWeightKg float64             `json:"total_weight_kg"`
+	TotalPlaces   int                 `json:"total_places"`
+	StatusSummary []StatusSummaryItem `json:"status_summary"`
+	EmployeeStats []EmployeeStat      `json:"employee_stats"`
 }
 
 type ShipmentFilter struct {

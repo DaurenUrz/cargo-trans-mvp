@@ -62,3 +62,7 @@ func (s *ReportService) StatusSummaryByStation(ctx context.Context, station stri
 	}
 	return items, nil
 }
+
+func (s *ReportService) LeaderDashboard(ctx context.Context) (model.LeaderDashboardReport, error) {
+	return s.repo.GetLeaderDashboardReport(ctx)
+}

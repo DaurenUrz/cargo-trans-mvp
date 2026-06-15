@@ -315,10 +315,16 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+		
+		msg := "Груз " + shipment.ShipmentNumber + " принят на склад ✓"
+		if shipment.QuantityPlaces > 1 && len(shipment.ScannedPlaces.Received) < shipment.QuantityPlaces {
+			msg = fmt.Sprintf("Принято место %d из %d для груза %s", len(shipment.ScannedPlaces.Received), shipment.QuantityPlaces, shipment.ShipmentNumber)
+		}
+		
 		writeJSON(w, http.StatusOK, map[string]any{
 			"shipment": shipment,
 			"action":   "READY_FOR_LOADING",
-			"message":  "Груз " + shipment.ShipmentNumber + " принят на склад ✓",
+			"message":  msg,
 		})
 
 	// Посылка юрлица (привёз сам) — is_door_to_door=false
@@ -339,10 +345,16 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+		
+		msg := "Груз " + shipment.ShipmentNumber + " принят на склад ✓"
+		if shipment.QuantityPlaces > 1 && len(shipment.ScannedPlaces.Received) < shipment.QuantityPlaces {
+			msg = fmt.Sprintf("Принято место %d из %d для груза %s", len(shipment.ScannedPlaces.Received), shipment.QuantityPlaces, shipment.ShipmentNumber)
+		}
+
 		writeJSON(w, http.StatusOK, map[string]any{
 			"shipment": shipment,
 			"action":   "READY_FOR_LOADING",
-			"message":  "Груз " + shipment.ShipmentNumber + " принят на склад ✓",
+			"message":  msg,
 		})
 
 	// Посылка door-to-door привезена курьером — нужно взвешивание (Фаза 2)

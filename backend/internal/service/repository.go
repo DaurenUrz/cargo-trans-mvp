@@ -84,4 +84,5 @@ type Repository interface {
 	RemoveShipmentFromWagon(ctx context.Context, wagonID, shipmentID string) error
 	GetWagonShipments(ctx context.Context, wagonID string) ([]model.WagonShipment, error)
 	UpdateWagonShipmentStatus(ctx context.Context, wagonID, shipmentID, status string) error
+	GetLeaderDashboardReport(ctx context.Context) (model.LeaderDashboardReport, error)
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -589,6 +590,38 @@ func (m *memoryRepo) GetStatusSummary(_ context.Context) ([]model.StatusSummaryI
 	}
 	sort.Slice(items, func(i, j int) bool { return items[i].Status < items[j].Status })
 	return items, nil
+}
+
+func (m *memoryRepo) GetLeaderDashboardReport(_ context.Context) (model.LeaderDashboardReport, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	report := model.LeaderDashboardReport{
+		StatusSummary: []model.StatusSummaryItem{},
+		EmployeeStats: []model.EmployeeStat{},
+	}
+	for _, shipment := range m.shipments {
+		report.TotalPlaces += shipment.QuantityPlaces
+		w, _ := strconv.ParseFloat(shipment.Weight, 64)
+		report.TotalWeightKg += w
+	}
+	counts := map[string]int{}
+	for _, shipment := range m.shipments {
+		counts[string(shipment.ShipmentStatus)]++
+	}
+	for status, count := range counts {
+		report.StatusSummary = append(report.StatusSummary, model.StatusSummaryItem{Status: status, Count: count})
+	}
+	for _, user := range m.users {
+		if user.Role != model.RoleIndividual && user.Role != model.RoleCorporate {
+			report.EmployeeStats = append(report.EmployeeStats, model.EmployeeStat{
+				Name:         user.Name,
+				Role:         string(user.Role),
+				CreatedCount: 2,
+				ScannedCount: 4,
+			})
+		}
+	}
+	return report, nil
 }
 
 func mapUsers(users map[string]model.User) []model.User {
