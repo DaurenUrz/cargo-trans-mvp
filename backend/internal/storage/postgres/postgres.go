@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -828,15 +829,19 @@ func (r *Repository) GetLeaderDashboardReport(ctx context.Context) (model.Leader
 	report.EmployeeStats = []model.EmployeeStat{}
 
 	// 1. Total Weight and Places
-	queryTotals := `
-		SELECT 
-			COALESCE(SUM(CAST(NULLIF(regexp_replace(weight, '[^0-9.]', '', 'g'), '') AS NUMERIC)), 0) as total_weight,
-			COALESCE(SUM(quantity_places), 0) as total_places
-		FROM shipments
-	`
-	err := r.pool.QueryRow(ctx, queryTotals).Scan(&report.TotalWeightKg, &report.TotalPlaces)
+	rowsTotals, err := r.pool.Query(ctx, `SELECT weight, quantity_places FROM shipments`)
 	if err != nil {
 		return report, err
+	}
+	defer rowsTotals.Close()
+	for rowsTotals.Next() {
+		var wStr string
+		var places int
+		if err := rowsTotals.Scan(&wStr, &places); err != nil {
+			return report, err
+		}
+		report.TotalPlaces += places
+		report.TotalWeightKg += parseWeightSafely(wStr)
 	}
 
 	// 2. Status Distribution
@@ -898,6 +903,25 @@ func (r *Repository) GetLeaderDashboardReport(ctx context.Context) (model.Leader
 	}
 
 	return report, nil
+}
+
+func parseWeightSafely(s string) float64 {
+	s = strings.ReplaceAll(s, ",", ".")
+	var sb strings.Builder
+	hasDot := false
+	for _, ch := range s {
+		if ch >= '0' && ch <= '9' {
+			sb.WriteRune(ch)
+		} else if ch == '.' && !hasDot {
+			sb.WriteRune(ch)
+			hasDot = true
+		}
+	}
+	val, err := strconv.ParseFloat(sb.String(), 64)
+	if err != nil {
+		return 0
+	}
+	return val
 }
 
 const userSelect = `SELECT id, name, login, password_hash, role, client_segment, company, deposit_balance, contract_number, phone, station, is_active, created_at FROM users`

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useLanguage } from '../contexts/LanguageContext';
 import { withApiBase } from '../lib/api-base';
 import { ManagerDashboard } from './ManagerDashboard';
 import { Reports } from './Reports';
@@ -70,7 +69,6 @@ const ROLE_TRANSLATIONS: Record<string, string> = {
 
 export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const isDark = theme === 'dark';
-  const { t } = useLanguage();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'reports'>('overview');
   const [report, setReport] = useState<LeaderDashboardReport | null>(null);
@@ -139,13 +137,13 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
   }
 
   // Calculate some helper stats from report data
-  const totalShipments = report?.status_summary.reduce((acc, item) => acc + item.count, 0) || 0;
+  const totalShipments = report?.status_summary?.reduce((acc, item) => acc + item.count, 0) || 0;
   const activeShipments = report?.status_summary
-    .filter(item => item.status !== 'ISSUED' && item.status !== 'CLOSED' && item.status !== 'CANCELLED')
-    .reduce((acc, item) => acc + item.count, 0) || 0;
+    ?.filter(item => item.status !== 'ISSUED' && item.status !== 'CLOSED' && item.status !== 'CANCELLED')
+    ?.reduce((acc, item) => acc + item.count, 0) || 0;
   const completedShipments = report?.status_summary
-    .filter(item => item.status === 'ISSUED' || item.status === 'CLOSED')
-    .reduce((acc, item) => acc + item.count, 0) || 0;
+    ?.filter(item => item.status === 'ISSUED' || item.status === 'CLOSED')
+    ?.reduce((acc, item) => acc + item.count, 0) || 0;
 
   return (
     <div className="space-y-6">
