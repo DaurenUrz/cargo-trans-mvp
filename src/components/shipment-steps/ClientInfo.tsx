@@ -1,6 +1,6 @@
 import { withApiBase } from "../../lib/api-base";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Truck } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 
 import { useEffect, useState } from 'react';
@@ -35,7 +35,7 @@ export function ClientInfo({
   const [corporateClients, setCorporateClients] = useState<CorporateClient[]>([]);
 
   const normalizeStation = (v: string) => v.trim().toLowerCase();
-  const effectivelyDoorToDoor = false;
+  const effectivelyDoorToDoor = data.isDoorToDoor || user?.role === 'individual';
   const sameFromTo =
     Boolean(data.fromStation) &&
     Boolean(data.toStation) &&
@@ -94,7 +94,7 @@ export function ClientInfo({
       updates.clientName = user.name || '';
       updates.clientPhone = user.phone || '';
       updates.clientSource = 'direct';
-      updates.isDoorToDoor = false;
+      updates.isDoorToDoor = true;
     } else if (user.role === 'corporate') {
       updates.clientId = user.id;
       updates.clientType = 'legal';
@@ -324,7 +324,75 @@ export function ClientInfo({
           )}
         </div>
 
+        {/* До двери — обязательно для физ. лиц (индивидуальных клиентов) и опционально для компаний (корпоративных клиентов), но скрыто для менеджера */}
+        {(user?.role === 'individual' || user?.role === 'corporate') && (
+          <div>
+            <label className="flex items-center mb-4">
+              <input
+                type="checkbox"
+                checked={effectivelyDoorToDoor}
+                disabled={user?.role === 'individual'}
+                onChange={(e) => {
+                  if (user?.role === 'individual') return;
+                  onUpdate({ isDoorToDoor: e.target.checked });
+                }}
+                className={`w-4 h-4 rounded ${user?.role === 'individual' ? 'text-blue-400 bg-gray-100 cursor-not-allowed' : 'text-blue-600'}`}
+              />
+              <span className={`ml-2 text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-900'}`}>
+                <Truck className={`inline w-4 h-4 mr-1 -mt-0.5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                 {t('doorToDoorDelivery')}{' '}
+                {user?.role !== 'individual' && <span className="text-gray-400 font-normal text-xs ml-1">({t('optional')})</span>}
+                {user?.role === 'individual' && <span className="text-blue-500 font-normal text-xs ml-1">({t('mandatory')})</span>}
+              </span>
+            </label>
 
+            {(effectivelyDoorToDoor) && (
+              <div className={`p-4 rounded-lg border ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                <div className="grid gap-4">
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {t('pickupAddress')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={data.pickupAddress || ''}
+                      onChange={(e) => onUpdate({ pickupAddress: e.target.value })}
+                      placeholder={t('pickupPlaceholder') || "Например: ул. Абая 12, кв. 5"}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'} ${effectivelyDoorToDoor && !data.pickupAddress ? 'border-red-500' : ''}`}
+                    />
+                    {effectivelyDoorToDoor && !data.pickupAddress && <p className="mt-1 text-xs text-red-500">Адрес забора обязателен</p>}
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {t('deliveryAddress')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={data.deliveryAddress || ''}
+                      onChange={(e) => onUpdate({ deliveryAddress: e.target.value })}
+                      placeholder={t('deliveryPlaceholder') || "Например: пр. Достык 88, офис 301"}
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'} ${effectivelyDoorToDoor && !data.deliveryAddress ? 'border-red-500' : ''}`}
+                    />
+                    {effectivelyDoorToDoor && !data.deliveryAddress && <p className="mt-1 text-xs text-red-500">Адрес доставки обязателен</p>}
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      {t('courierPhone')} <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={data.doorToDoorPhone || ''}
+                      onChange={(e) => onUpdate({ doorToDoorPhone: e.target.value })}
+                      placeholder="+7 ___ ___ ____"
+                      className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' : 'border-gray-300'} ${effectivelyDoorToDoor && !data.doorToDoorPhone ? 'border-red-500' : ''}`}
+                    />
+                    {effectivelyDoorToDoor && !data.doorToDoorPhone && <p className="mt-1 text-xs text-red-500">Телефон для связи обязателен</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className={`pt-6 border-t ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
           <h3 className={`text-lg font-medium mb-4 ${isDark ? 'text-gray-100' : 'text-gray-900'}`}>{t('route')}</h3>
