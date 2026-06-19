@@ -410,7 +410,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   {((s.shipment_status || s.status) === 'PAID') && (
                     <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      <span>Создан: {new Date(s.created_at).toLocaleString('ru-RU')}</span>
+                      <span>{t('created')}: {formatDate(s.created_at)}</span>
                     </div>
                   )}
                 </div>
@@ -501,16 +501,16 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <h3 className={`text-sm font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Фильтр по транзитным маршрутам
+                        {t('transitFilterTitle')}
                       </h3>
                       <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'} mt-0.5`}>
-                        Выберите станцию для просмотра сводной информации
+                        {t('transitFilterSubtitle')}
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <label className={`text-xs font-semibold whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Станция:
+                        {t('transitStationLabel')}
                       </label>
                       <select
                         value={transitRouteFilter}
@@ -521,7 +521,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                             : 'border-gray-300 bg-white hover:bg-gray-50'
                         }`}
                       >
-                        <option value="all">Все станции</option>
+                        <option value="all">{t('transitAllStations')}</option>
                         {uniqueTransitStations.map(station => (
                           <option key={station} value={station}>
                             {station}
@@ -545,13 +545,13 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                         <ArrowUpRight className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
-                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>Отправляем (в пути)</div>
+                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>{t('transitSendingLabel')}</div>
                         <div className="mt-2 space-y-1">
                           <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            Вес: <span className="font-bold">{totalOutgoingWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} кг</span>
+                            {t('transitWeightLabel')} <span className="font-bold">{totalOutgoingWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} {t('transitWeightSuffix')}</span>
                           </div>
                           <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            Мест: <span className="font-bold">{totalOutgoingPlaces.toLocaleString()} мест</span>
+                            {t('transitPlacesLabel')} <span className="font-bold">{totalOutgoingPlaces.toLocaleString()} {t('transitPlacesSuffix')}</span>
                           </div>
                         </div>
                       </div>
@@ -569,13 +569,13 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                         <ArrowDownLeft className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
-                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>Получаем (в пути)</div>
+                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>{t('transitReceivingLabel')}</div>
                         <div className="mt-2 space-y-1">
                           <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            Вес: <span className="font-bold">{totalIncomingWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} кг</span>
+                            {t('transitWeightLabel')} <span className="font-bold">{totalIncomingWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} {t('transitWeightSuffix')}</span>
                           </div>
                           <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            Мест: <span className="font-bold">{totalIncomingPlaces.toLocaleString()} мест</span>
+                            {t('transitPlacesLabel')} <span className="font-bold">{totalIncomingPlaces.toLocaleString()} {t('transitPlacesSuffix')}</span>
                           </div>
                         </div>
                       </div>
@@ -605,7 +605,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                                 ? 'bg-blue-105 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' 
                                 : 'bg-purple-105 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
                             }`}>
-                              {isOutgoing ? 'Отправлено' : 'Ожидается'}
+                              {isOutgoing ? t('transitStatusSent') : t('transitStatusExpected')}
                             </span>
                             <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
                               {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
