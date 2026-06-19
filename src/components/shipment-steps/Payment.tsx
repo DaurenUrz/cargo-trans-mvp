@@ -17,10 +17,6 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   const isDark = theme === 'dark';
   const hasClickedRef = useRef(false);
 
-  if (!isSubmitting) {
-    hasClickedRef.current = false;
-  }
-
   const breakdown = getCostBreakdown({
     fromStation: data.fromStation,
     toStation: data.toStation,

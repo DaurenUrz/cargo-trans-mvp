@@ -1,8 +1,10 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"cargo/backend/internal/model"
@@ -11,6 +13,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
+
+// Per-user deduplication guard for shipment creation.
+// Prevents the same user from creating two shipments within a short window.
+var (
+	createShipmentLastTime   = make(map[string]time.Time)
+	createShipmentLastTimeMu sync.Mutex
+)
+
 
 func (s *Server) mountShipmentRoutes(r chi.Router) {
 	r.Get("/shipments", s.handleListShipments)
@@ -44,6 +54,18 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
+
+	// Per-user dedup: reject if same user created a shipment < 5 seconds ago
+	const dedupWindow = 5 * time.Second
+	createShipmentLastTimeMu.Lock()
+	if last, ok := createShipmentLastTime[user.ID]; ok && time.Since(last) < dedupWindow {
+		createShipmentLastTimeMu.Unlock()
+		log.Printf("DEDUP: blocked duplicate shipment creation for user %s (last was %s ago)", user.ID, time.Since(last))
+		writeError(w, http.StatusTooManyRequests, fmt.Sprintf("Подождите %d сек. перед созданием следующей посылки", int(dedupWindow.Seconds())))
+		return
+	}
+	createShipmentLastTimeMu.Unlock()
+
 	var req struct {
 		ClientID        string  `json:"client_id"`
 		ClientName      string  `json:"client_name"`
@@ -125,6 +147,12 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
+
+	// Record successful creation time for dedup
+	createShipmentLastTimeMu.Lock()
+	createShipmentLastTime[user.ID] = time.Now()
+	createShipmentLastTimeMu.Unlock()
+
 	s.broadcastToRoom("station:"+shipment.FromStation, "new-shipment", shipment)
 	writeJSON(w, http.StatusOK, shipment)
 }
