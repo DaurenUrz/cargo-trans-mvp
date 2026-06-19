@@ -117,4 +117,4 @@ Railway может быть отдельным окружением. Важно 
 
 - `backend` (Go API)
 - `frontend-main` (текущий web UI из корня репозитория)
-- `frontend-courier` (`cargo-courier-app`)
+ - `frontend-courier` (`cargo-courier-app`)
