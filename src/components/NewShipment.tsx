@@ -61,7 +61,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           ticketNumber: '',
           receiverName: '',
           receiverPhone: '',
-          paymentMethod: 'kaspi_qr',
+          paymentMethod: 'card',
           clientDepositBalance: 0,
           isDoorToDoor: user?.role === 'individual',
           pickupAddress: '',
@@ -98,7 +98,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       ticketNumber: '',
       receiverName: '',
       receiverPhone: '',
-      paymentMethod: 'kaspi_qr',
+      paymentMethod: 'card',
       paymentNumber: '',
       clientDepositBalance: 0,
       isDoorToDoor: user?.role === 'individual',
@@ -171,12 +171,12 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
     setIsSubmitting(true);
 
     const getFormattedPaymentMethod = () => {
-      const method = shipmentData.paymentMethod || 'kaspi_qr';
+      const method = shipmentData.paymentMethod || 'card';
       const num = shipmentData.paymentNumber || '';
       switch (method) {
         case 'cash': return 'Оплата наличными';
-        case 'card': return 'Карта';
-        case 'kaspi_qr': return 'Kaspi QR';
+        case 'card':
+        case 'kaspi_qr': return 'Карта / Kaspi QR';
         case 'deposit': return 'Депозит';
         case 'faxogram': return `Факсограмма (№ ${num})`;
         case 'mo_coupons': return `По талонам МО (№ ${num})`;
@@ -219,7 +219,9 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           has_ticket: shipmentData.hasTicket,
           ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : '',
           payment_method: getFormattedPaymentMethod(),
-          shipment_number: user?.role === 'manager' ? (shipmentData.shipmentNumber || undefined) : undefined
+          shipment_number: user?.role === 'manager' && shipmentData.shipmentNumber 
+            ? (shipmentData.shipmentNumber.startsWith('SH-') ? shipmentData.shipmentNumber : 'SH-' + shipmentData.shipmentNumber)
+            : undefined
         })
       });
 
@@ -506,7 +508,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
                       ticketNumber: '',
                       receiverName: '',
                       receiverPhone: '',
-                      paymentMethod: 'kaspi_qr',
+                      paymentMethod: 'card',
                       clientDepositBalance: 0,
                       isDoorToDoor: false,
                       pickupAddress: '',

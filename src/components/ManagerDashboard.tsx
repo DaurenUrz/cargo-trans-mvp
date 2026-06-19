@@ -26,6 +26,8 @@ interface Shipment {
   client_role?: string;
   client_id?: string;
   created_by?: string;
+  created_by_name?: string;
+  creator_role?: string;
 }
 
 export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
@@ -383,6 +385,13 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
                   </div>
                   <div className="text-sm font-medium mb-1">{s.client_name}</div>
                   <div className="text-xs text-gray-500 mb-2">{s.from_station} → {s.to_station}</div>
+                  
+                  {((s.shipment_status || s.status) === 'PAID') && (
+                    <div className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Создан: {new Date(s.created_at).toLocaleString('ru-RU')}</span>
+                    </div>
+                  )}
                 </div>
               ))
             )}

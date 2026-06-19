@@ -27,7 +27,7 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   });
 
   const total = breakdown?.total || 0;
-  const paymentMethod = data.paymentMethod || 'kaspi_qr';
+  const paymentMethod = data.paymentMethod || 'card';
   const depositBalance = data.clientDepositBalance || 0;
   const hasDeposit = data.hasDeposit === true;
   const effectiveTotal = Number(data.actualAmount !== undefined && data.actualAmount !== '' ? data.actualAmount : total);
@@ -43,9 +43,8 @@ export function Payment({ data, onUpdate, onNext, onBack, theme = 'light', isSub
   const label = `block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`;
 
   const paymentMethods: { id: string; label: string; subtitle?: string }[] = [
-    { id: 'kaspi_qr', label: 'Kaspi QR' },
+    { id: 'card', label: 'Карта / Kaspi QR' },
     { id: 'cash', label: 'Оплата наличными' },
-    { id: 'card', label: 'Карта' },
     { id: 'faxogram', label: 'Факсограмма' },
     { id: 'mo_coupons', label: 'По талонам МО' },
     { id: 'payment_order', label: 'Чек по платежному поручению' }

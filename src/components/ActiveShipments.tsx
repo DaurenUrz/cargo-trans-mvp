@@ -304,7 +304,11 @@ export function ActiveShipments({ theme = 'light' }: { theme?: 'light' | 'dark' 
                 <div className="flex-shrink-0 text-right flex flex-col items-end gap-2">
                   <div className={`flex items-center gap-1 text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     <Clock className="w-3.5 h-3.5" />
-                    <span>{shipment.date}</span>
+                    <span>
+                      {(shipment.shipment_status || shipment.status) === 'PAID'
+                        ? new Date(shipment.created_at).toLocaleString('ru-RU')
+                        : shipment.date}
+                    </span>
                   </div>
                   <span className={`text-xs font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                     {shipment.weight}

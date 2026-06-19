@@ -29,6 +29,8 @@ interface ActiveShipmentDetailsProps {
     extra_charge?: number;
     has_ticket?: boolean;
     ticket_number?: string;
+    created_by_name?: string;
+    creator_role?: string;
   };
   onClose: () => void;
   onRefresh?: () => void;
@@ -194,12 +196,28 @@ export function ActiveShipmentDetails({ shipment, onClose, theme = 'light' }: Ac
                 <p className={value}>{shipment.client}</p>
               </div>
               <div>
-                <p className={label}>Login</p>
-                <p className={value}>
-                  {(shipment.client_login && !shipment.client_login.includes('@cargo.kz') && shipment.client_login.trim() !== '')
-                    ? shipment.client_login
-                    : '—'}
-                </p>
+                {(() => {
+                  const isStaff = shipment.creator_role && !['individual', 'corporate', 'client'].includes(shipment.creator_role.toLowerCase());
+                  if (isStaff) {
+                    return (
+                      <>
+                        <p className={label}>Сотрудник</p>
+                        <p className={value}>{shipment.created_by_name || shipment.client_login || '—'}</p>
+                      </>
+                    );
+                  } else {
+                    return (
+                      <>
+                        <p className={label}>Login</p>
+                        <p className={value}>
+                          {(shipment.client_login && !shipment.client_login.includes('@cargo.kz') && shipment.client_login.trim() !== '')
+                            ? shipment.client_login
+                            : '—'}
+                        </p>
+                      </>
+                    );
+                  }
+                })()}
               </div>
             </div>
             {shipment.has_ticket && (

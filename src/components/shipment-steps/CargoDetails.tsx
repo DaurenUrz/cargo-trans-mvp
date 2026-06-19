@@ -35,7 +35,8 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
     const checkNumber = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(withApiBase(`/api/track/${data.shipmentNumber}`), {
+        const numToCheck = data.shipmentNumber.startsWith('SH-') ? data.shipmentNumber : 'SH-' + data.shipmentNumber;
+        const res = await fetch(withApiBase(`/api/track/${numToCheck}`), {
           headers: {
             'Authorization': `Bearer ${token}`
           }

@@ -169,6 +169,8 @@ type Shipment struct {
 	TicketNumber    string    `json:"ticket_number" db:"ticket_number"`
 	LastUpdatedAt   time.Time `json:"last_updated_at"`
 	CreatedBy       *string   `json:"created_by,omitempty"`
+	CreatedByName   string    `json:"created_by_name,omitempty"`
+	CreatorRole     string    `json:"creator_role,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

@@ -19,7 +19,7 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
   const dict = {
     ru: {
       dailyTotal: 'Итого за день',
-      cashTotal: 'Из них наличные (нал)',
+      cashTotal: 'Оплата наличными',
       nonCashTotal: 'Из них безналичные (безнал)',
       selectDate: 'Выберите дату',
       showOnlySelectedDay: 'Показать только за выбранный день',
@@ -33,11 +33,14 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
       selectedDayOnly: 'Выбранный день',
       allTime: 'Все время',
       filtersTitle: 'Фильтры',
-      resetFilters: 'Сбросить фильтры'
+      resetFilters: 'Сбросить фильтры',
+      totalSum: 'Общая сумма',
+      cardQR: 'Карта / Kaspi QR',
+      deposit: 'Депозит'
     },
     kk: {
       dailyTotal: 'Күнделікті қорытынды',
-      cashTotal: 'Оның ішінде қолма-қол',
+      cashTotal: 'Қолма-қол ақша',
       nonCashTotal: 'Оның ішінде қолма-қолсыз',
       selectDate: 'Күнді таңдаңыз',
       showOnlySelectedDay: 'Тек таңдалған күн үшін көрсету',
@@ -51,11 +54,14 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
       selectedDayOnly: 'Таңдалған күн',
       allTime: 'Барлық уақыт',
       filtersTitle: 'Сүзгілер',
-      resetFilters: 'Сүзгілерді тастау'
+      resetFilters: 'Сүзгілерді тастау',
+      totalSum: 'Жалпы сомасы',
+      cardQR: 'Карта / Kaspi QR',
+      deposit: 'Депозит'
     },
     en: {
       dailyTotal: 'Daily Total',
-      cashTotal: 'Of which Cash',
+      cashTotal: 'Cash Payment',
       nonCashTotal: 'Of which Non-Cash',
       selectDate: 'Select Date',
       showOnlySelectedDay: 'Show only for selected day',
@@ -69,7 +75,10 @@ const getTranslation = (lang: 'ru' | 'en' | 'kk') => {
       selectedDayOnly: 'Selected Day',
       allTime: 'All Time',
       filtersTitle: 'Filters',
-      resetFilters: 'Reset filters'
+      resetFilters: 'Reset filters',
+      totalSum: 'Total Sum',
+      cardQR: 'Card / Kaspi QR',
+      deposit: 'Deposit'
     }
   };
   return dict[lang] || dict['ru'];
@@ -132,6 +141,14 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
     }
   };
 
+  const getNormalizedMethod = (method: string): 'cash' | 'card' | 'deposit' | 'other' => {
+    const m = (method || '').toLowerCase();
+    if (m.includes('deposit') || m.includes('депозит')) return 'deposit';
+    if (m.includes('card') || m.includes('карта') || m.includes('qr') || m.includes('kaspi')) return 'card';
+    if (m.includes('cash') || m.includes('нал') || m.includes('наличными')) return 'cash';
+    return 'other';
+  };
+
   // Payments to show in the table (filtered by date, search, and payment method)
   const displayedPayments = payments.filter(p => {
     // 1. Filter by date if showOnlySelectedDay is enabled
@@ -150,18 +167,25 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
 
     // 3. Filter by payment method
     if (filterMethod) {
-      const method = (p.payment_method || '').toLowerCase();
-      if (filterMethod === 'cash') {
-        if (method !== 'cash') return false;
-      } else if (filterMethod === 'card') {
-        if (method !== 'card') return false;
-      } else if (filterMethod === 'deposit') {
-        if (method !== 'deposit') return false;
+      const normalized = getNormalizedMethod(p.payment_method);
+      if (filterMethod !== normalized) {
+        return false;
       }
     }
 
     return true;
   });
+
+  // Calculate dynamic totals for the summary cards
+  const totals = displayedPayments.reduce((acc, p) => {
+    const method = getNormalizedMethod(p.payment_method);
+    acc.total += p.amount;
+    if (method === 'cash') acc.cash += p.amount;
+    else if (method === 'card') acc.card += p.amount;
+    else if (method === 'deposit') acc.deposit += p.amount;
+    else acc.other += p.amount;
+    return acc;
+  }, { total: 0, cash: 0, card: 0, deposit: 0, other: 0 });
 
   const card = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
   const inputCls = isDark
@@ -229,6 +253,42 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
         )}
       </div>
 
+      {/* Dynamic Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className={`p-5 rounded-2xl border transition-all ${isDark ? 'bg-blue-950/40 border-blue-900/50 shadow-md shadow-blue-950/10' : 'bg-blue-50/50 border-blue-100 shadow-sm'}`}>
+          <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+            {loc.totalSum}
+          </p>
+          <p className={`text-2xl font-bold mt-1.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {totals.total.toLocaleString()} ₸
+          </p>
+        </div>
+        <div className={`p-5 rounded-2xl border transition-all ${isDark ? 'bg-green-950/40 border-green-900/50 shadow-md shadow-green-950/10' : 'bg-green-50/50 border-green-100 shadow-sm'}`}>
+          <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+            {loc.cashTotal}
+          </p>
+          <p className={`text-2xl font-bold mt-1.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {totals.cash.toLocaleString()} ₸
+          </p>
+        </div>
+        <div className={`p-5 rounded-2xl border transition-all ${isDark ? 'bg-indigo-950/40 border-indigo-900/50 shadow-md shadow-indigo-950/10' : 'bg-indigo-50/50 border-indigo-100 shadow-sm'}`}>
+          <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>
+            {loc.cardQR}
+          </p>
+          <p className={`text-2xl font-bold mt-1.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {totals.card.toLocaleString()} ₸
+          </p>
+        </div>
+        <div className={`p-5 rounded-2xl border transition-all ${isDark ? 'bg-amber-950/40 border-amber-900/50 shadow-md shadow-amber-950/10' : 'bg-amber-50/50 border-amber-100 shadow-sm'}`}>
+          <p className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
+            {loc.deposit}
+          </p>
+          <p className={`text-2xl font-bold mt-1.5 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {totals.deposit.toLocaleString()} ₸
+          </p>
+        </div>
+      </div>
+
       {/* Main Table */}
       <div className={`rounded-xl shadow-sm border overflow-hidden ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
         {isLoading ? (
@@ -260,11 +320,13 @@ export function PaymentLog({ theme }: { theme?: 'light' | 'dark' }) {
                       {payment.amount.toLocaleString()} ₸
                     </td>
                     <td className={`px-6 py-4 whitespace-nowrap text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {payment.payment_method === 'deposit'
-                        ? t('deposit')
-                        : payment.payment_method === 'card'
-                          ? t('card')
-                          : t('cash')}
+                      {(() => {
+                        const normalized = getNormalizedMethod(payment.payment_method);
+                        if (normalized === 'deposit') return loc.deposit;
+                        if (normalized === 'card') return loc.cardQR;
+                        if (normalized === 'cash') return loc.cashTotal;
+                        return payment.payment_method;
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${

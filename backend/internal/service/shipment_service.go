@@ -115,11 +115,15 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	}
 	var number string
 	if req.ShipmentNumber != "" {
-		existing, err := s.repo.GetShipmentByTrackingCode(ctx, req.ShipmentNumber)
+		reqNum := req.ShipmentNumber
+		if !strings.HasPrefix(reqNum, "SH-") {
+			reqNum = "SH-" + reqNum
+		}
+		existing, err := s.repo.GetShipmentByTrackingCode(ctx, reqNum)
 		if err == nil && existing.ID != "" {
 			return model.Shipment{}, errors.New("посылка с таким номером уже существует")
 		}
-		number = req.ShipmentNumber
+		number = reqNum
 	} else {
 		number = "SH-" + fmt.Sprintf("%06d", cryptoRandInt(1000000))
 	}
