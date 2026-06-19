@@ -63,7 +63,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           receiverPhone: '',
           paymentMethod: 'kaspi_qr',
           clientDepositBalance: 0,
-          isDoorToDoor: user?.role === 'individual',
+          isDoorToDoor: false,
           pickupAddress: '',
           deliveryAddress: '',
           doorToDoorPhone: '',
@@ -100,7 +100,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       paymentMethod: 'kaspi_qr',
       paymentNumber: '',
       clientDepositBalance: 0,
-      isDoorToDoor: user?.role === 'individual',
+      isDoorToDoor: false,
       pickupAddress: '',
       deliveryAddress: '',
       doorToDoorPhone: '',
@@ -116,7 +116,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
         clientId: prev.clientId || user.id,
         clientName: prev.clientName || ((user.role === 'individual' || user.role === 'corporate') ? (user.name || '') : ''),
         clientPhone: prev.clientPhone || user.phone || '',
-        isDoorToDoor: user.role === 'individual' ? true : prev.isDoorToDoor,
+        isDoorToDoor: false,
         clientType: user.role === 'corporate' ? 'legal' : prev.clientType,
       }));
     }
