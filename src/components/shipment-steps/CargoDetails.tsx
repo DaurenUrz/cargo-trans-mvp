@@ -1,8 +1,9 @@
 import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCostBreakdown } from '../../lib/tariff';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { withApiBase } from '../../lib/api-base';
 
 interface CargoDetailsProps {
   data: any;
@@ -16,6 +17,50 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
   const { t } = useLanguage();
   const isDark = theme === 'dark';
   const { user } = useAuth();
+
+  const [isDuplicate, setIsDuplicate] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+
+  useEffect(() => {
+    if (!/^\d{6}$/.test(data.shipmentNumber || '')) {
+      setIsDuplicate(false);
+      setIsChecking(false);
+      return;
+    }
+
+    let active = true;
+    setIsChecking(true);
+    setIsDuplicate(false);
+
+    const checkNumber = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(withApiBase(`/api/track/${data.shipmentNumber}`), {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (!active) return;
+        if (res.ok) {
+          setIsDuplicate(true);
+        } else {
+          setIsDuplicate(false);
+        }
+      } catch (e) {
+        console.error('Failed to check shipment number uniqueness:', e);
+      } finally {
+        if (active) {
+          setIsChecking(false);
+        }
+      }
+    };
+
+    const timer = setTimeout(checkNumber, 300);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [data.shipmentNumber]);
 
   const breakdown = useMemo(() => getCostBreakdown({
     fromStation: data.fromStation,
@@ -76,19 +121,29 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
         {user?.role === 'manager' && (
           <div>
             <label className={label}>Номер посылки (6 цифр) <span className="text-red-500">*</span></label>
-            <input
-              type="text"
-              maxLength={6}
-              value={data.shipmentNumber || ''}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '');
-                onUpdate({ shipmentNumber: val });
-              }}
-              className={`${input} ${data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber) ? 'border-red-500 focus:ring-red-500' : ''}`}
-              placeholder="Например: 123456"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                maxLength={6}
+                value={data.shipmentNumber || ''}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  onUpdate({ shipmentNumber: val });
+                }}
+                className={`${input} ${(data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber)) || isDuplicate ? 'border-red-500 focus:ring-red-500' : ''}`}
+                placeholder="Например: 123456"
+              />
+              {isChecking && (
+                <div className="absolute right-3 top-2.5 flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                </div>
+              )}
+            </div>
             {data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber) && (
               <p className="mt-1 text-xs text-red-500">Номер должен состоять ровно из 6 цифр</p>
+            )}
+            {isDuplicate && (
+              <p className="mt-1 text-xs text-red-500 font-medium">Посылка с таким номером уже существует!</p>
             )}
           </div>
         )}
@@ -212,7 +267,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
           </button>
           <button
             onClick={onNext}
-            disabled={!data.weight || !data.quantityPlaces || !data.packaging || isOverweight || (user?.role === 'manager' && !/^\d{6}$/.test(data.shipmentNumber || ''))}
+            disabled={!data.weight || !data.quantityPlaces || !data.packaging || isOverweight || (user?.role === 'manager' && (!/^\d{6}$/.test(data.shipmentNumber || '') || isDuplicate || isChecking))}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}
