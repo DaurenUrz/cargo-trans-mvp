@@ -141,43 +141,50 @@ func parseCORSAllowedOrigins(value string) []string {
 func (s *Server) routes() chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
-	r.Use(s.requestLogger)
-	r.Use(s.rateLimiter)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: parseCORSAllowedOrigins(s.cfg.CORSAllowedOrigins),
 		AllowedMethods: []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Accept", "Authorization", "Content-Type"},
 	}))
 
-	r.Get("/health", s.handleHealth)
+	// Register WebSocket and Socket.IO routes with NO requestLogger, rateLimiter, or Timeout
 	r.Get("/ws", s.handleWebSocket)
 	r.Get("/ws/", s.handleWebSocket)
 	r.Handle("/socket.io/", s.socket)
 	r.Handle("/socket.io/*", s.socket)
 
-	r.Route("/api", func(api chi.Router) {
-		s.mountAuthRoutes(api)
-		s.mountUserRoutes(api)
-		s.mountReferenceRoutes(api)
-		s.mountClientRoutes(api)
-		s.mountShipmentRoutes(api)
-		s.mountCourierRoutes(api)
-		s.mountPaymentRoutes(api)
-		s.mountTrackingRoutes(api)
-		s.mountTransitRoutes(api)
-		s.mountArrivalRoutes(api)
-		s.mountLifecycleRoutes(api)
-		s.mountNotificationRoutes(api)
-		s.mountAuditRoutes(api)
-		s.mountReportRoutes(api)
-		s.mountWagonRoutes(api)
-		// WhatsApp debug endpoints (admin only in production)
-		api.With(s.requireAuth).Get("/whatsapp/status", s.handleWhatsAppStatus)
-		api.With(s.requireAuth).Post("/whatsapp/test", s.handleWhatsAppTest)
-		// Admin: database cleanup
-		api.With(s.requireAuth).Post("/admin/cleanup", s.handleAdminCleanup)
+	// All standard HTTP routes get Timeout, requestLogger, and rateLimiter
+	r.Group(func(sub chi.Router) {
+		sub.Use(s.requestLogger)
+		sub.Use(middleware.Timeout(60 * time.Second))
+		sub.Use(s.rateLimiter)
+
+		sub.Get("/health", s.handleHealth)
+
+		sub.Route("/api", func(api chi.Router) {
+			s.mountAuthRoutes(api)
+			s.mountUserRoutes(api)
+			s.mountReferenceRoutes(api)
+			s.mountClientRoutes(api)
+			s.mountShipmentRoutes(api)
+			s.mountCourierRoutes(api)
+			s.mountPaymentRoutes(api)
+			s.mountTrackingRoutes(api)
+			s.mountTransitRoutes(api)
+			s.mountArrivalRoutes(api)
+			s.mountLifecycleRoutes(api)
+			s.mountNotificationRoutes(api)
+			s.mountAuditRoutes(api)
+			s.mountReportRoutes(api)
+			s.mountWagonRoutes(api)
+			// WhatsApp debug endpoints (admin only in production)
+			api.With(s.requireAuth).Get("/whatsapp/status", s.handleWhatsAppStatus)
+			api.With(s.requireAuth).Post("/whatsapp/test", s.handleWhatsAppTest)
+			// Admin: database cleanup
+			api.With(s.requireAuth).Post("/admin/cleanup", s.handleAdminCleanup)
+		})
 	})
+
 	return r
 }
 
