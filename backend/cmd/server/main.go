@@ -40,6 +40,13 @@ func main() {
 		log.Fatalf("migrate postgres: %v", err)
 	}
 
+	// Temporary delete shipment 123456 / SH-123456 as requested by user
+	if _, err := db.Pool().Exec(ctx, "DELETE FROM shipments WHERE shipment_number = $1 OR shipment_number = $2", "123456", "SH-123456"); err != nil {
+		log.Printf("⚠️  Failed to delete temporary shipments: %v", err)
+	} else {
+		log.Printf("✅ Deleted temporary shipments if they existed")
+	}
+
 	repo := postgres.NewRepository(db.Pool())
 	services := service.NewServices(repo, cfg.JWTSecret)
 	server, err := api.NewServer(cfg, services, db.Pool())
