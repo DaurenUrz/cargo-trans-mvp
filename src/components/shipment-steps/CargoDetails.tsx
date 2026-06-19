@@ -2,6 +2,7 @@ import { ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { getCostBreakdown } from '../../lib/tariff';
 import { useMemo } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface CargoDetailsProps {
   data: any;
@@ -14,6 +15,7 @@ interface CargoDetailsProps {
 export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }: CargoDetailsProps) {
   const { t } = useLanguage();
   const isDark = theme === 'dark';
+  const { user } = useAuth();
 
   const breakdown = useMemo(() => getCostBreakdown({
     fromStation: data.fromStation,
@@ -69,6 +71,27 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
             </div>
           )}
         </div>
+
+        {/* Номер посылки (только для менеджера) */}
+        {user?.role === 'manager' && (
+          <div>
+            <label className={label}>Номер посылки (6 цифр) <span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              maxLength={6}
+              value={data.shipmentNumber || ''}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                onUpdate({ shipmentNumber: val });
+              }}
+              className={`${input} ${data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber) ? 'border-red-500 focus:ring-red-500' : ''}`}
+              placeholder="Например: 123456"
+            />
+            {data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber) && (
+              <p className="mt-1 text-xs text-red-500">Номер должен состоять ровно из 6 цифр</p>
+            )}
+          </div>
+        )}
 
         {/* Вес и количество мест */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -189,7 +212,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
           </button>
           <button
             onClick={onNext}
-            disabled={!data.weight || !data.quantityPlaces || !data.packaging || isOverweight}
+            disabled={!data.weight || !data.quantityPlaces || !data.packaging || isOverweight || (user?.role === 'manager' && !/^\d{6}$/.test(data.shipmentNumber || ''))}
             className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {t('next')}

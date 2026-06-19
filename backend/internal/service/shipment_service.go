@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	cryptorand "crypto/rand"
+	"errors"
 	"fmt"
 	"math/big"
 	"regexp"
@@ -43,6 +44,7 @@ type CreateShipmentRequest struct {
 	HasTicket       bool
 	TicketNumber    string
 	PaymentMethod   string
+	ShipmentNumber  string
 }
 
 type CorrectionRequest struct {
@@ -111,7 +113,16 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 	if len(route) > 1 {
 		nextStation = &route[1]
 	}
-	number := "SH-" + fmt.Sprintf("%06d", cryptoRandInt(1000000))
+	var number string
+	if req.ShipmentNumber != "" {
+		existing, err := s.repo.GetShipmentByTrackingCode(ctx, req.ShipmentNumber)
+		if err == nil && existing.ID != "" {
+			return model.Shipment{}, errors.New("посылка с таким номером уже существует")
+		}
+		number = req.ShipmentNumber
+	} else {
+		number = "SH-" + fmt.Sprintf("%06d", cryptoRandInt(1000000))
+	}
 	pickupCode := fmt.Sprintf("%04d", cryptoRandInt(10000))
 	issueCode := fmt.Sprintf("%04d", cryptoRandInt(10000))
 	shipment := model.Shipment{
@@ -279,14 +290,12 @@ func (s *ShipmentService) Create(ctx context.Context, req CreateShipmentRequest)
 }
 
 func parseBarcode(barcode string) (string, int, int) {
-	if strings.HasPrefix(barcode, "SH-") {
-		if parts := strings.Split(barcode, "-"); len(parts) >= 3 {
-			var place, total int
-			_, err1 := fmt.Sscanf(parts[len(parts)-2], "%d", &place)
-			_, err2 := fmt.Sscanf(parts[len(parts)-1], "%d", &total)
-			if err1 == nil && err2 == nil {
-				return strings.Join(parts[:len(parts)-2], "-"), place, total
-			}
+	if parts := strings.Split(barcode, "-"); len(parts) >= 3 {
+		var place, total int
+		_, err1 := fmt.Sscanf(parts[len(parts)-2], "%d", &place)
+		_, err2 := fmt.Sscanf(parts[len(parts)-1], "%d", &total)
+		if err1 == nil && err2 == nil {
+			return strings.Join(parts[:len(parts)-2], "-"), place, total
 		}
 	}
 	return barcode, 1, 1

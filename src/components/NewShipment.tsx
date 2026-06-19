@@ -68,6 +68,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           deliveryAddress: '',
           doorToDoorPhone: '',
           actualAmount: '',
+          shipmentNumber: '',
           ...parsed
         };
       } catch (e) {
@@ -105,6 +106,7 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
       deliveryAddress: '',
       doorToDoorPhone: '',
       actualAmount: '',
+      shipmentNumber: '',
     };
   });
 
@@ -216,7 +218,8 @@ export function NewShipment({ theme = 'light', onBack }: NewShipmentProps) {
           sender_phone: shipmentData.clientPhone || null,
           has_ticket: shipmentData.hasTicket,
           ticket_number: shipmentData.hasTicket ? shipmentData.ticketNumber : '',
-          payment_method: getFormattedPaymentMethod()
+          payment_method: getFormattedPaymentMethod(),
+          shipment_number: user?.role === 'manager' ? (shipmentData.shipmentNumber || undefined) : undefined
         })
       });
 

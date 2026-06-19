@@ -90,10 +90,30 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		HasTicket       bool    `json:"has_ticket"`
 		TicketNumber    string  `json:"ticket_number"`
 		PaymentMethod   string  `json:"payment_method"`
+		ShipmentNumber  string  `json:"shipment_number"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
 	}
+
+	if req.ShipmentNumber != "" {
+		if user.Role != model.RoleManager && user.Role != model.RoleAdmin {
+			writeError(w, http.StatusForbidden, "Только менеджер может вводить номер посылки вручную")
+			return
+		}
+		isDigitsOnly := true
+		for _, char := range req.ShipmentNumber {
+			if char < '0' || char > '9' {
+				isDigitsOnly = false
+				break
+			}
+		}
+		if len(req.ShipmentNumber) != 6 || !isDigitsOnly {
+			writeError(w, http.StatusBadRequest, "Номер посылки должен состоять ровно из 6 цифр")
+			return
+		}
+	}
+
 	// Default client role if not provided
 	clientRole := req.ClientRole
 	if clientRole == "" {
@@ -142,6 +162,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		HasTicket:       req.HasTicket,
 		TicketNumber:    req.TicketNumber,
 		PaymentMethod:   req.PaymentMethod,
+		ShipmentNumber:  req.ShipmentNumber,
 	})
 	if err != nil {
 		handleServiceError(w, err)
