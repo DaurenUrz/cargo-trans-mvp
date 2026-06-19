@@ -79,13 +79,16 @@ func (db *DB) Migrate() error {
 
 func (db *DB) ensureBootstrapAdmin(ctx context.Context) error {
 	password := strings.TrimSpace(os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"))
-	if password == "" {
-		return nil
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return fmt.Errorf("hash bootstrap admin password: %w", err)
+	var hash []byte
+	var err error
+	if password != "" {
+		hash, err = bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return fmt.Errorf("hash bootstrap admin password: %w", err)
+		}
+	} else {
+		// Fallback to default admin/admin hash if BOOTSTRAP_ADMIN_PASSWORD is not set
+		hash = []byte("$2a$10$6a38vVYPoVs0OBngM21Ksu9Rz0QaShAfhSg.DjRxjb8oInIKlh0me")
 	}
 
 	_, err = db.pool.Exec(ctx, `
@@ -98,6 +101,7 @@ func (db *DB) ensureBootstrapAdmin(ctx context.Context) error {
 	}
 	return nil
 }
+
 
 type Repository struct {
 	pool *pgxpool.Pool
