@@ -125,7 +125,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "new-shipment", shipment)
+	s.broadcastToRoom("station:"+shipment.FromStation, "new-shipment", shipment)
 	writeJSON(w, http.StatusOK, shipment)
 }
 

@@ -13,8 +13,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/time/rate"
 
 	"cargo/backend/internal/config"
 	"cargo/backend/internal/model"
@@ -36,6 +36,7 @@ type Server struct {
 	services service.Services
 	router   chi.Router
 	socket   *socketio.Server
+	wsHub    *webSocketHub
 	pool     *pgxpool.Pool
 
 	clients    map[string]*rate.Limiter
@@ -50,6 +51,7 @@ func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Po
 		cfg:        cfg,
 		services:   services,
 		socket:     socket,
+		wsHub:      newWebSocketHub(),
 		clients:    make(map[string]*rate.Limiter),
 		cancelFunc: cancel,
 	}
@@ -64,7 +66,7 @@ func NewServer(cfg config.Config, services service.Services, pool ...*pgxpool.Po
 		delayMins = 1
 	}
 	delay := time.Duration(delayMins) * time.Minute
-	go worker.StartTransitWorker(ctx, s.services.Shipments, delay, s.socket, s.services.Shipments.Repo())
+	go worker.StartTransitWorker(ctx, s.services.Shipments, delay, s.broadcastToRoom, s.services.Shipments.Repo())
 
 	// Cleanup stale rate-limiter entries every 10 minutes to prevent memory leak
 	go func() {
@@ -108,6 +110,9 @@ func (s *Server) Close() {
 	if s.socket != nil {
 		s.socket.Close()
 	}
+	if s.wsHub != nil {
+		s.wsHub.Close()
+	}
 }
 
 func (s *Server) Router() http.Handler {
@@ -146,6 +151,8 @@ func (s *Server) routes() chi.Router {
 	}))
 
 	r.Get("/health", s.handleHealth)
+	r.Get("/ws", s.handleWebSocket)
+	r.Get("/ws/", s.handleWebSocket)
 	r.Handle("/socket.io/", s.socket)
 	r.Handle("/socket.io/*", s.socket)
 
@@ -204,7 +211,7 @@ func (s *Server) rateLimiter(next http.Handler) http.Handler {
 				}
 			}
 		}
-		
+
 		s.mu.Lock()
 		limiter, exists := s.clients[ip]
 		if !exists {
@@ -225,6 +232,15 @@ func (s *Server) rateLimiter(next http.Handler) http.Handler {
 
 func (s *Server) stationRoom(station string) string {
 	return "station:" + strings.ToLower(strings.TrimSpace(station))
+}
+
+func (s *Server) broadcastToRoom(room, event string, data any) {
+	if s.socket != nil {
+		s.socket.BroadcastToRoom("/", room, event, data)
+	}
+	if s.wsHub != nil {
+		s.wsHub.Broadcast(room, event, data)
+	}
 }
 
 func (s *Server) setupSocket() {
@@ -297,7 +313,6 @@ func handleServiceError(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusInternalServerError, "Internal Server Error")
 	}
 }
-
 
 func (s *Server) mustAuth(w http.ResponseWriter, r *http.Request) (*service.AuthenticatedUser, bool) {
 	authHeader := r.Header.Get("Authorization")

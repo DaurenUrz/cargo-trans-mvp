@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { withApiBase } from '../lib/api-base';
+import { withApiBase, wsBaseFromApi } from '../lib/api-base';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { QRCodeSVG } from 'qrcode.react';
@@ -184,7 +184,7 @@ export function CourierDashboard() {
   }, [user?.station, user?.id]);
 
   useEffect(() => {
-    const wsBase = (import.meta as any).env?.VITE_WS_BASE;
+    const wsBase = wsBaseFromApi();
     const socketUrl = wsBase ? `${wsBase}/ws` : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
     const socket = new WebSocket(socketUrl);
 

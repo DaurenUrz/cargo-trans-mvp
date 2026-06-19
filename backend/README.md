@@ -31,7 +31,7 @@ export DATABASE_URL="postgres://postgres:postgres@localhost:5432/cargotrans?sslm
 export JWT_SECRET="dev-secret"
 export PORT="8080"
 # Optional: comma-separated browser origins (production). Default * = allow all (dev only).
-# export CORS_ALLOWED_ORIGINS="http://localhost:5173,http://141.148.236.58"
+# export CORS_ALLOWED_ORIGINS="http://localhost:5173,http://185.47.167.38"
 
 ## Где лежат данные
 

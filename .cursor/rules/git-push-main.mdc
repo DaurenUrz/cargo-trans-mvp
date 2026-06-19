@@ -1,11 +1,13 @@
 ---
-description: После правок в коде — коммит и push в main; прод через GitHub Actions на Oracle.
+description: После правок в коде — коммит и push в актуальную ветку; прод через GitHub Actions на VM.
 alwaysApply: true
 ---
 
 # Git и хостинг
 
-- Репозиторий: **origin** → `https://github.com/imnotmanyaa/cargo.git`, ветка **main** (`git push origin main`).
-- Когда задача меняет код: в конце `git add -A`, осмысленный `git commit -m "…"`, затем `git push origin main`.
-- После push срабатывает workflow **Deploy main to Oracle** (секрет `ORACLE_SSH_PRIVATE_KEY` в настройках репозитория на GitHub).
+- Репозиторий: **origin** → `https://github.com/DaurenUrz/cargo-trans-mvp.git`.
+- Основная рабочая ветка этого окружения: **dauren** (`git push origin dauren`).
+- Когда задача меняет код: в конце `git add -A`, осмысленный `git commit -m "…"`, затем `git push origin dauren`.
+- После push в `main` или `dauren` срабатывает workflow **Deploy to VM** (секрет `ORACLE_SSH_PRIVATE_KEY` в настройках репозитория на GitHub).
+- Текущий VM production: `ubuntu@185.47.167.38`.
 - Ключи `.pem`, пароли и `.env` в репозиторий не коммитить.

@@ -76,11 +76,42 @@ pkill -f "go run ./cmd/server"; kill $(lsof -ti:8080) 2>/dev/null; kill $(lsof -
 
 ---
 
-## Деплой в Railway
+## Деплой
+
+Текущий production-сервер VM: `185.47.167.38`.
+
+### GitHub Actions -> VM
+
+Workflow `.github/workflows/deploy-main.yml` запускается при push в `main` или `dauren`.
+Он собирает frontend, копирует `dist/` и `backend/` на VM, билдит Go backend на сервере и перезапускает `cargo.service`.
+
+Нужный GitHub Actions secret:
+
+- `ORACLE_SSH_PRIVATE_KEY` — приватный SSH-ключ пользователя `ubuntu` для VM `185.47.167.38`.
+
+Ручной деплой с локальной машины:
+
+```bash
+npm ci
+npm run build
+DEPLOY_SSH_KEY_PATH=/path/to/key.pem bash scripts/deploy-remote.sh
+```
+
+Для другого сервера можно переопределить:
+
+```bash
+DEPLOY_SERVER=ubuntu@185.47.167.38 DEPLOY_SSH_KEY_PATH=/path/to/key.pem bash scripts/deploy-remote.sh
+```
+
+Скрипт берет `DATABASE_URL` из `cargo.service` на VM или из переменной окружения `DATABASE_URL`; пароль базы в репозитории не хранится.
+
+### Railway
 
 Пошаговая инструкция для прод-деплоя:
 
 - `DEPLOY_RAILWAY.md`
+
+Railway может быть отдельным окружением. Важно не смешивать его с VM: для frontend задавайте `VITE_API_URL` на Railway backend, а для server.js задавайте `BACKEND_URL`.
 
 Поддерживается монорепо из одного GitHub-репозитория:
 

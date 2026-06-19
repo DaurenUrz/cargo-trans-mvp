@@ -143,8 +143,9 @@ export function TopBar({ theme, onToggleTheme, onToggleLeftSidebar, onToggleRigh
     user?.role === 'receiver' ||
     user?.role === 'train_receiver' ||
     user?.role === 'manager' ||
-    user?.role === 'loading' ||
-    user?.role === 'issue' ||
+    user?.role === 'loading_operator' ||
+    user?.role === 'issue_operator' ||
+    user?.role === 'transit_operator' ||
     user?.role === 'mobile_group';
 
   return (

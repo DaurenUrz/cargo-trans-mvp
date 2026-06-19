@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type DB struct {
@@ -61,23 +63,41 @@ func (db *DB) Migrate() error {
 		if err != nil {
 			return fmt.Errorf("failed to read migration %s: %v", file, err)
 		}
-		
+
 		log.Printf("Applying migration: %s", file)
 		if _, err := db.pool.Exec(ctx, string(content)); err != nil {
 			log.Printf("Note: Error applying migration %s (safe if already applied): %v", file, err)
 		}
 	}
-	
-	// Create or update default admin user
-	_, _ = db.pool.Exec(ctx, `
-		INSERT INTO users (id, name, login, password_hash, role, deposit_balance, is_active)
-		VALUES ('admin-001', 'Admin', 'admin', '$2a$10$6a38vVYPoVs0OBngM21Ksu9Rz0QaShAfhSg.DjRxjb8oInIKlh0me', 'admin', 0, true)
-		ON CONFLICT (id) DO UPDATE SET login = EXCLUDED.login, password_hash = EXCLUDED.password_hash
-	`)
+
+	if err := db.ensureBootstrapAdmin(ctx); err != nil {
+		return err
+	}
 
 	return nil
 }
 
+func (db *DB) ensureBootstrapAdmin(ctx context.Context) error {
+	password := strings.TrimSpace(os.Getenv("BOOTSTRAP_ADMIN_PASSWORD"))
+	if password == "" {
+		return nil
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash bootstrap admin password: %w", err)
+	}
+
+	_, err = db.pool.Exec(ctx, `
+		INSERT INTO users (id, name, login, password_hash, role, client_segment, deposit_balance, is_active)
+		VALUES ('admin-001', 'Admin', 'admin', $1, 'admin', 'staff', 0, true)
+		ON CONFLICT (id) DO NOTHING
+	`, string(hash))
+	if err != nil {
+		return fmt.Errorf("ensure bootstrap admin: %w", err)
+	}
+	return nil
+}
 
 type Repository struct {
 	pool *pgxpool.Pool
@@ -265,7 +285,6 @@ func (r *Repository) DeleteFrequentClient(ctx context.Context, id string) error 
 	_, err := r.pool.Exec(ctx, `UPDATE frequent_clients SET is_active = FALSE WHERE id = $1`, id)
 	return err
 }
-
 
 func (r *Repository) ListRoles(ctx context.Context) ([]model.RoleRecord, error) {
 	rows, err := r.pool.Query(ctx, `SELECT id, name, description FROM roles ORDER BY name`)
@@ -713,7 +732,6 @@ func (r *Repository) listAuditLogsWhere(ctx context.Context, where string, args 
 	return items, rows.Err()
 }
 
-
 func (r *Repository) GetDashboardReport(ctx context.Context) (model.DashboardReport, error) {
 	var report model.DashboardReport
 	start := startOfMonth()
@@ -1114,7 +1132,7 @@ func (r *Repository) GetWagonShipments(ctx context.Context, wagonID string) ([]m
 		var ws model.WagonShipment
 		var scannedPlacesRaw []byte
 		if err := rows.Scan(&ws.ID, &ws.WagonID, &ws.ShipmentID, &ws.Status, &ws.ScannedAt,
-		                    &ws.ShipmentNumber, &ws.QuantityPlaces, &scannedPlacesRaw); err != nil {
+			&ws.ShipmentNumber, &ws.QuantityPlaces, &scannedPlacesRaw); err != nil {
 			return nil, err
 		}
 		if len(scannedPlacesRaw) > 0 {
@@ -1227,4 +1245,3 @@ func (r *Repository) ConfirmPaymentTx(ctx context.Context, paymentID, confirmedB
 
 	return payment, shipment, nil
 }
-

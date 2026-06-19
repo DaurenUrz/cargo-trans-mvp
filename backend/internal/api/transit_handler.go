@@ -75,7 +75,7 @@ func (s *Server) handleMarkTransit(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+	s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 	writeJSON(w, http.StatusOK, shipment)
 }
 
@@ -112,7 +112,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 				handleServiceError(w, err)
 				return
 			}
-			s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+			s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 			writeJSON(w, http.StatusOK, shipment)
 			return
 		}
@@ -124,7 +124,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 				handleServiceError(w, err)
 				return
 			}
-			s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+			s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 			writeJSON(w, http.StatusOK, shipment)
 			return
 		}
@@ -136,16 +136,16 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 			handleServiceError(w, err)
 			return
 		}
-		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 		writeJSON(w, http.StatusOK, shipment)
 		return
 	}
 
 	shipment, notification, err := s.services.Shipments.Arrive(r.Context(), chi.URLParam(r, "id"), req.CurrentStation, &user.ID, &user.Name)
 	if err == nil {
-		s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+		s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 		if notification != nil {
-			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+			s.broadcastToRoom("user:"+notification.UserID, "notification:new", notification)
 		}
 		writeJSON(w, http.StatusOK, shipment)
 		return
@@ -158,7 +158,7 @@ func (s *Server) handleLegacyTransit(w http.ResponseWriter, r *http.Request) {
 		handleServiceError(w, err)
 		return
 	}
-	s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+	s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 	writeJSON(w, http.StatusOK, shipment)
 }
 
@@ -298,7 +298,7 @@ func (s *Server) handleAuditorCheck(w http.ResponseWriter, r *http.Request) {
 					CreatedAt: checkedAt,
 				})
 				if err == nil {
-					s.socket.BroadcastToRoom("/", "user:"+manager.ID, "notification:new", notification)
+					s.broadcastToRoom("user:"+manager.ID, "notification:new", notification)
 				}
 			}
 		}

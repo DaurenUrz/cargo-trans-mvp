@@ -13,7 +13,7 @@ if [[ -z "$KEY" || ! -f "$KEY" ]]; then
 fi
 chmod 600 "$KEY"
 
-SERVER="${DEPLOY_SERVER:-ubuntu@141.148.236.58}"
+SERVER="${DEPLOY_SERVER:-ubuntu@185.47.167.38}"
 # DEPLOY_SSH_STRICT_HOST_KEY=1: do not disable host key check (add host via ssh-keyscan first, e.g. in CI).
 if [[ "${DEPLOY_SSH_STRICT_HOST_KEY:-0}" == "1" ]]; then
   SSH=(ssh -i "$KEY")
@@ -48,7 +48,10 @@ if systemctl show cargo -p Environment &>/dev/null; then
     DATABASE_URL="$DETECTED_DB_URL"
   fi
 fi
-DATABASE_URL="${DATABASE_URL:-postgres://cargotrans:CargoTrans2026!@localhost:5432/cargotrans?sslmode=disable}"
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "DATABASE_URL is not set and was not found in cargo.service Environment." >&2
+  exit 1
+fi
 export DATABASE_URL
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
@@ -96,4 +99,4 @@ sudo systemctl restart cargo
 echo "Backend restarted."
 REMOTE
 
-echo "Deploy complete: http://141.148.236.58"
+echo "Deploy complete: http://185.47.167.38"

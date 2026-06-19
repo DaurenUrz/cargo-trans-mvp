@@ -1,7 +1,21 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { withApiBase } from '../lib/api-base';
 
-type UserRole = 'corporate' | 'individual' | 'receiver' | 'admin' | 'manager' | 'direction_head' | 'chief_head' | 'mobile_group' | 'courier';
+type UserRole =
+  | 'corporate'
+  | 'individual'
+  | 'receiver'
+  | 'train_receiver'
+  | 'admin'
+  | 'manager'
+  | 'direction_head'
+  | 'chief_head'
+  | 'mobile_group'
+  | 'courier'
+  | 'loading_operator'
+  | 'transit_operator'
+  | 'issue_operator'
+  | 'accounting';
 
 interface User {
   id: string;

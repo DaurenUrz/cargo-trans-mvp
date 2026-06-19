@@ -8,12 +8,12 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5173;
-const BACKEND_URL = process.env.BACKEND_URL || 'https://cargo-trans-mvp-production.up.railway.app';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:8080';
 
 // Proxy API and WebSocket — mount at root to keep full path (no Express path stripping)
 app.use(
   createProxyMiddleware({
-    pathFilter: ['/api/**', '/socket.io/**'],
+    pathFilter: ['/api/**', '/ws/**', '/socket.io/**'],
     target: BACKEND_URL,
     changeOrigin: true,
     ws: true,

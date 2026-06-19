@@ -211,7 +211,7 @@ func (s *Server) handleCourierTakeDeliveryTask(w http.ResponseWriter, r *http.Re
 		handleServiceError(w, err)
 		return
 	}
-	s.socket.BroadcastToRoom("/", "station:"+updated.ToStation, "shipment-updated", updated)
+	s.broadcastToRoom("station:"+updated.ToStation, "shipment-updated", updated)
 	writeJSON(w, http.StatusOK, updated)
 }
 
@@ -233,7 +233,7 @@ func (s *Server) handleCourierBranchPickup(w http.ResponseWriter, r *http.Reques
 	}
 	// Создаём scan event для подтверждения
 	s.services.Tracking.Scan(r.Context(), shipmentID, "BRANCH_PICKUP", &user.Station, nil, &user.ID, nil)
-	s.socket.BroadcastToRoom("/", "station:"+shipment.ToStation, "shipment-updated", shipment)
+	s.broadcastToRoom("station:"+shipment.ToStation, "shipment-updated", shipment)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"shipment": shipment,
 		"message":  "Посылка " + shipment.ShipmentNumber + " передана курьеру для доставки ✓",

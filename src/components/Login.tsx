@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Package, UserPlus, QrCode } from 'lucide-react';
 import { Register } from './Register';
 import { useLanguage } from '../contexts/LanguageContext';
+import { withApiBase } from '../lib/api-base';
 
 export function Login() {
   const { login: doLogin } = useAuth();
@@ -32,7 +33,7 @@ export function Login() {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('https://cargo-trans-mvp-production.up.railway.app/api/auth/forgot-password', {
+      const res = await fetch(withApiBase('/api/auth/forgot-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login })
@@ -52,7 +53,7 @@ export function Login() {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch('https://cargo-trans-mvp-production.up.railway.app/api/auth/reset-password', {
+      const res = await fetch(withApiBase('/api/auth/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ login, code: resetCode, new_password: newPassword })

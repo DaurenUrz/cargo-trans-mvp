@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { withApiBase } from '../lib/api-base';
-import { QrCode, Package } from 'lucide-react';
+import { QrCode } from 'lucide-react';
 
 export function QrLogin() {
   const [message, setMessage] = useState('Наведите сканер на ваш бейдж');

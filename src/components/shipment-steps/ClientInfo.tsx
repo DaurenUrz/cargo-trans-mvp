@@ -1,6 +1,6 @@
 import { withApiBase } from "../../lib/api-base";
 
-import { ArrowRight, Users, Truck } from "lucide-react";
+import { ArrowRight, Truck } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
 
 import { useEffect, useState } from 'react';

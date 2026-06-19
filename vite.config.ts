@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import legacy from '@vitejs/plugin-legacy';
 
+const apiTarget = process.env.VITE_PROXY_API_TARGET || process.env.VITE_API_URL || 'http://localhost:8080';
+const wsTarget = process.env.VITE_PROXY_WS_TARGET || apiTarget.replace(/^http/, 'ws');
+
 export default defineConfig({
   plugins: [
     react(),
@@ -65,12 +68,18 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://cargo-trans-mvp-production.up.railway.app',
+        target: apiTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: wsTarget,
+        ws: true,
         changeOrigin: true,
         secure: false,
       },
       '/socket.io': {
-        target: 'wss://cargo-trans-mvp-production.up.railway.app',
+        target: wsTarget,
         ws: true,
         changeOrigin: true,
         secure: false,
@@ -83,12 +92,18 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://cargo-trans-mvp-production.up.railway.app',
+        target: apiTarget,
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: wsTarget,
+        ws: true,
         changeOrigin: true,
         secure: false,
       },
       '/socket.io': {
-        target: 'wss://cargo-trans-mvp-production.up.railway.app',
+        target: wsTarget,
         ws: true,
         changeOrigin: true,
         secure: false,

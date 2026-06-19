@@ -8,22 +8,22 @@ import (
 
 	"cargo/backend/internal/model"
 	"cargo/backend/internal/service"
-
-	socketio "github.com/googollee/go-socket.io"
 )
+
+type BroadcastFunc func(room, event string, data any)
 
 // StartTransitWorker запускает фоновый процесс, который каждые 5 минут проверяет
 // посылки в статусе LOADED и автоматически переводит их в IN_TRANSIT,
 // если прошло больше delay времени с момента последнего обновления.
 //
 // Конфигурируется через переменную среды AUTO_TRANSIT_DELAY_MINUTES (по умолчанию 60).
-func StartTransitWorker(ctx context.Context, shipments *service.ShipmentService, delay time.Duration, socket *socketio.Server, repo service.Repository) {
+func StartTransitWorker(ctx context.Context, shipments *service.ShipmentService, delay time.Duration, broadcast BroadcastFunc, repo service.Repository) {
 	log.Printf("[transit-worker] запущен. Задержка: %v. Проверка каждые 30 секунд.", delay)
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	// Запускаем сразу при старте, не ждём первого тика
-	runTransition(ctx, shipments, delay, socket, repo)
+	runTransition(ctx, shipments, delay, broadcast, repo)
 
 	for {
 		select {
@@ -31,12 +31,12 @@ func StartTransitWorker(ctx context.Context, shipments *service.ShipmentService,
 			log.Println("[transit-worker] остановлен.")
 			return
 		case <-ticker.C:
-			runTransition(ctx, shipments, delay, socket, repo)
+			runTransition(ctx, shipments, delay, broadcast, repo)
 		}
 	}
 }
 
-func runTransition(ctx context.Context, shipments *service.ShipmentService, delay time.Duration, socket *socketio.Server, repo service.Repository) {
+func runTransition(ctx context.Context, shipments *service.ShipmentService, delay time.Duration, broadcast BroadcastFunc, repo service.Repository) {
 	candidates, err := shipments.ListLoadedForTransit(ctx, delay)
 	if err != nil {
 		log.Printf("[transit-worker] ошибка получения списка: %v", err)
@@ -55,9 +55,9 @@ func runTransition(ctx context.Context, shipments *service.ShipmentService, dela
 		log.Printf("[transit-worker] посылка %s переведена в IN_TRANSIT", sh.ShipmentNumber)
 
 		// Broadcast обновление по сокету
-		if socket != nil {
-			socket.BroadcastToRoom("/", "station:"+updated.FromStation, "shipment-updated", updated)
-			socket.BroadcastToRoom("/", "station:"+updated.ToStation, "shipment-updated", updated)
+		if broadcast != nil {
+			broadcast("station:"+updated.FromStation, "shipment-updated", updated)
+			broadcast("station:"+updated.ToStation, "shipment-updated", updated)
 		}
 
 		// In-app уведомление отправителю
@@ -67,8 +67,8 @@ func runTransition(ctx context.Context, shipments *service.ShipmentService, dela
 			Message: senderMsg,
 			Type:    "shipment_in_transit",
 		})
-		if socket != nil && senderNotif.ID != 0 {
-			socket.BroadcastToRoom("/", "user:"+updated.ClientID, "notification:new", senderNotif)
+		if broadcast != nil && senderNotif.ID != 0 {
+			broadcast("user:"+updated.ClientID, "notification:new", senderNotif)
 		}
 	}
 }

@@ -271,7 +271,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 				handleServiceError(w, err)
 				return
 			}
-			s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "shipment-updated", shipment)
+			s.broadcastToRoom("station:"+shipment.FromStation, "shipment-updated", shipment)
 			writeJSON(w, http.StatusOK, map[string]any{
 				"shipment": shipment,
 				"action":   "IN_TRANSIT",
@@ -284,7 +284,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 				handleServiceError(w, err)
 				return
 			}
-			s.socket.BroadcastToRoom("/", "station:"+shipment.FromStation, "shipment-updated", shipment)
+			s.broadcastToRoom("station:"+shipment.FromStation, "shipment-updated", shipment)
 			writeJSON(w, http.StatusOK, map[string]any{
 				"shipment": shipment,
 				"action":   "IN_TRANSIT",
@@ -314,7 +314,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			handleServiceError(w, err)
 			return
 		}
-		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+		s.broadcastToRoom("station:"+station, "shipment-updated", shipment)
 		
 		msg := "Груз " + shipment.ShipmentNumber + " принят на склад ✓"
 		if shipment.QuantityPlaces > 1 && len(shipment.ScannedPlaces.Received) < shipment.QuantityPlaces {
@@ -344,7 +344,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			handleServiceError(w, err)
 			return
 		}
-		s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", shipment)
+		s.broadcastToRoom("station:"+station, "shipment-updated", shipment)
 		
 		msg := "Груз " + shipment.ShipmentNumber + " принят на склад ✓"
 		if shipment.QuantityPlaces > 1 && len(shipment.ScannedPlaces.Received) < shipment.QuantityPlaces {
@@ -390,18 +390,18 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if notification != nil {
-			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+			s.broadcastToRoom("user:"+notification.UserID, "notification:new", notification)
 		}
-		s.socket.BroadcastToRoom("/", s.stationRoom(shipment.CurrentStation), "shipment-updated", shipment)
+		s.broadcastToRoom(s.stationRoom(shipment.CurrentStation), "shipment-updated", shipment)
 		
 		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
-			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "courier:new-task", shipment)
+			s.broadcastToRoom(s.stationRoom(shipment.ToStation), "courier:new-task", shipment)
 			courierNotif := model.Notification{
 				Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
 				Type:      "courier_new_task",
 				CreatedAt: time.Now().UTC(),
 			}
-			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "notification:new", courierNotif)
+			s.broadcastToRoom(s.stationRoom(shipment.ToStation), "notification:new", courierNotif)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -423,18 +423,18 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if notification != nil {
-			s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+			s.broadcastToRoom("user:"+notification.UserID, "notification:new", notification)
 		}
-		s.socket.BroadcastToRoom("/", s.stationRoom(shipment.CurrentStation), "shipment-updated", shipment)
+		s.broadcastToRoom(s.stationRoom(shipment.CurrentStation), "shipment-updated", shipment)
 		
 		if shipment.IsDoorToDoor && shipment.ShipmentStatus == model.ShipmentReadyForIssue {
-			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "courier:new-task", shipment)
+			s.broadcastToRoom(s.stationRoom(shipment.ToStation), "courier:new-task", shipment)
 			courierNotif := model.Notification{
 				Message:   "Новая задача доставки: посылка " + shipment.ShipmentNumber + " прибыла в " + shipment.ToStation,
 				Type:      "courier_new_task",
 				CreatedAt: time.Now().UTC(),
 			}
-			s.socket.BroadcastToRoom("/", s.stationRoom(shipment.ToStation), "notification:new", courierNotif)
+			s.broadcastToRoom(s.stationRoom(shipment.ToStation), "notification:new", courierNotif)
 		}
 
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -467,7 +467,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 		_, _ = s.services.Tracking.Scan(r.Context(), shipmentID, "ISSUE_SCAN", &station, nil, &user.ID, nil)
 
 		// Оповещаем сокеты
-		s.socket.BroadcastToRoom("/", s.stationRoom(station), "shipment-updated", shipment)
+		s.broadcastToRoom(s.stationRoom(station), "shipment-updated", shipment)
 
 		writeJSON(w, http.StatusOK, map[string]any{
 			"shipment": shipment,
@@ -489,7 +489,7 @@ func (s *Server) handleSmartScan(w http.ResponseWriter, r *http.Request) {
 			handleServiceError(w, err)
 			return
 		}
-		s.socket.BroadcastToRoom("/", s.stationRoom(station), "shipment-updated", shipment)
+		s.broadcastToRoom(s.stationRoom(station), "shipment-updated", shipment)
 		writeJSON(w, http.StatusOK, map[string]any{
 			"shipment":       shipment,
 			"action":         "BRANCH_PICKUP",
@@ -546,9 +546,9 @@ func (s *Server) handleConfirmIntake(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if notification != nil {
-		s.socket.BroadcastToRoom("/", "user:"+notification.UserID, "notification:new", notification)
+		s.broadcastToRoom("user:"+notification.UserID, "notification:new", notification)
 	}
-	s.socket.BroadcastToRoom("/", "station:"+station, "shipment-updated", result.Shipment)
+	s.broadcastToRoom("station:"+station, "shipment-updated", result.Shipment)
 
 	msg := "Груз " + result.Shipment.ShipmentNumber + " принят на склад ✓"
 	if result.RequiresPayment {
@@ -591,7 +591,7 @@ func (s *Server) handleClearPayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.socket.BroadcastToRoom("/", "station:"+shipment.CurrentStation, "shipment-updated", shipment)
+	s.broadcastToRoom("station:"+shipment.CurrentStation, "shipment-updated", shipment)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"shipment": shipment,

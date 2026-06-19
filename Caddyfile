@@ -1,5 +1,19 @@
-:{$PORT} {
-    root * dist
-    file_server
-    try_files {path} /index.html
+:{$PORT:80} {
+    handle /api/* {
+        reverse_proxy localhost:8080
+    }
+
+    handle /ws* {
+        reverse_proxy localhost:8080
+    }
+
+    handle /socket.io/* {
+        reverse_proxy localhost:8080
+    }
+
+    handle {
+        root * /home/ubuntu/cargo/dist
+        try_files {path} /index.html
+        file_server
+    }
 }

@@ -1,10 +1,10 @@
-# После каждого push в ветку main — сборка и деплой на Oracle (scripts/deploy-remote.sh).
-# Секрет репозитория: ORACLE_SSH_PRIVATE_KEY — полный текст ssh-key-cargo.pem (Settings → Secrets → Actions).
-name: Deploy main to Oracle
+# После каждого push в ветку main или dauren — сборка и деплой на VM (scripts/deploy-remote.sh).
+# Секрет репозитория: ORACLE_SSH_PRIVATE_KEY — полный текст SSH private key (Settings → Secrets → Actions).
+name: Deploy to VM
 
 on:
   push:
-    branches: [main]
+    branches: [main, dauren]
   workflow_dispatch:
 
 concurrency:
@@ -37,8 +37,8 @@ jobs:
           echo "$ORACLE_SSH_PRIVATE_KEY" > ~/.ssh/oracle_deploy.pem
           chmod 600 ~/.ssh/oracle_deploy.pem
 
-      - name: Trust Oracle host key (strict SSH)
-        run: mkdir -p ~/.ssh && ssh-keyscan -H 141.148.236.58 >> ~/.ssh/known_hosts
+      - name: Trust VM host key (strict SSH)
+        run: mkdir -p ~/.ssh && ssh-keyscan -H 185.47.167.38 >> ~/.ssh/known_hosts
 
       - name: Rsync + remote build
         run: |
