@@ -109,7 +109,7 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if len(req.ShipmentNumber) != 6 || !isDigitsOnly {
-			writeError(w, http.StatusBadRequest, "Номер посылки должен состоять ровно из 6 цифр")
+			writeError(w, http.StatusBadRequest, "Номер посылки должен состоять ровно из 6 цифр. Если номер короче, дополните его нулями спереди (например: 000123)")
 			return
 		}
 	}

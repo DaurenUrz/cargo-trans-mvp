@@ -132,7 +132,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
                   onUpdate({ shipmentNumber: val });
                 }}
                 className={`${input} ${(data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber)) || isDuplicate ? 'border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="Номер талона АСУ (например: 123456)"
+                placeholder="Номер талона АСУ (например: 000123)"
               />
               {isChecking && (
                 <div className="absolute right-3 top-2.5 flex items-center">
@@ -140,8 +140,14 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
                 </div>
               )}
             </div>
-            {data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber) && (
-              <p className="mt-1 text-xs text-red-500">Номер должен состоять ровно из 6 цифр</p>
+            {data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber) ? (
+              <p className="mt-1 text-xs text-red-500 font-medium">
+                Номер должен состоять ровно из 6 цифр. Если ваш номер короче, дополните его нулями спереди (например: 000123).
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-gray-500">
+                Если ваш номер короче 6 цифр, дополните его нулями спереди (например: 000123).
+              </p>
             )}
             {isDuplicate && (
               <p className="mt-1 text-xs text-red-500 font-medium">Посылка с таким номером уже существует!</p>
