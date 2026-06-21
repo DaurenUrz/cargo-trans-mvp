@@ -258,7 +258,7 @@ export function CorporateDashboard({ theme = 'light', onCreateShipment }: Corpor
                     to: shipments[0].to_station,
                     date: shipments[0].created_at
                   };
-                  printWaybill(sh);
+                  printWaybill(sh, true);
                 } else {
                   alert('У вас пока нет оформленных отправлений.');
                 }

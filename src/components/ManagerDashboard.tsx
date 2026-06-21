@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, MapPin, Clock, Phone, AlertTriangle, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Package, MapPin, Clock, Phone, AlertTriangle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { withApiBase } from '../lib/api-base';
@@ -42,7 +42,6 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<'date_desc' | 'date_asc' | 'cost_desc' | 'cost_asc'>('date_desc');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [transitRouteFilter, setTransitRouteFilter] = useState<string>('all');
 
 
 
@@ -160,48 +159,11 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
     matchSearch(x)
   ));
 
-  // Outgoing shipments in transit (from myStation to other stations)
-  const outgoingTransitShipments = s.filter(x =>
-    x.from_station === myStation &&
-    x.to_station !== myStation &&
-    ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
-    matchSearch(x)
-  );
-
-  // Incoming shipments in transit (from other stations to myStation)
-  const incomingTransitShipments = s.filter(x =>
+  const transitShipments = applySortAndFilter(s.filter(x =>
     x.to_station === myStation &&
-    x.from_station !== myStation &&
     ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
-  );
-
-  // Unique partner stations for the dropdown filter
-  const uniqueTransitStations = Array.from(
-    new Set([
-      ...s.filter(x => x.from_station === myStation && x.to_station !== myStation && ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status)).map(x => x.to_station),
-      ...s.filter(x => x.to_station === myStation && x.from_station !== myStation && ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status)).map(x => x.from_station)
-    ])
-  ).filter(Boolean).sort();
-
-  const filteredOutgoingTransit = transitRouteFilter === 'all'
-    ? outgoingTransitShipments
-    : outgoingTransitShipments.filter(x => x.to_station === transitRouteFilter);
-
-  const filteredIncomingTransit = transitRouteFilter === 'all'
-    ? incomingTransitShipments
-    : incomingTransitShipments.filter(x => x.from_station === transitRouteFilter);
-
-  const transitShipments = applySortAndFilter([
-    ...filteredOutgoingTransit,
-    ...filteredIncomingTransit
-  ]);
-
-  const totalOutgoingWeight = filteredOutgoingTransit.reduce((acc, x) => acc + (parseFloat(x.weight) || 0), 0);
-  const totalOutgoingPlaces = filteredOutgoingTransit.reduce((acc, x) => acc + (x.quantity_places || 1), 0);
-
-  const totalIncomingWeight = filteredIncomingTransit.reduce((acc, x) => acc + (parseFloat(x.weight) || 0), 0);
-  const totalIncomingPlaces = filteredIncomingTransit.reduce((acc, x) => acc + (x.quantity_places || 1), 0);
+  ));
 
   const formatDate = (d: string) => {
     const dt = new Date(d);
@@ -492,134 +454,31 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
             {activeTab === 'transit' && (
               <div className="space-y-4">
-                {/* Route filter & summary metrics block */}
-                <div className={`p-6 rounded-2xl border transition-all ${
-                  isDark 
-                    ? 'bg-gray-800/80 border-gray-700/80 backdrop-blur-md shadow-lg shadow-black/10' 
-                    : 'bg-white border-gray-200/80 shadow-md shadow-gray-100/50'
-                }`}>
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h3 className={`text-sm font-semibold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                        {t('transitFilterTitle')}
-                      </h3>
-                      <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'} mt-0.5`}>
-                        {t('transitFilterSubtitle')}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <label className={`text-xs font-semibold whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {t('transitStationLabel')}
-                      </label>
-                      <select
-                        value={transitRouteFilter}
-                        onChange={e => setTransitRouteFilter(e.target.value)}
-                        className={`px-3.5 py-1.5 text-xs font-medium border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                          isDark 
-                            ? 'bg-gray-700 border-gray-600 text-gray-200 hover:bg-gray-650' 
-                            : 'border-gray-300 bg-white hover:bg-gray-50'
-                        }`}
-                      >
-                        <option value="all">{t('transitAllStations')}</option>
-                        {uniqueTransitStations.map(station => (
-                          <option key={station} value={station}>
-                            {station}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Summary metrics display */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 pt-5 border-t border-dashed border-gray-200 dark:border-gray-700">
-                    {/* Outgoing stats */}
-                    <div className={`p-4 rounded-xl flex items-start gap-4 transition-all hover:scale-[1.02] ${
-                      isDark 
-                        ? 'bg-blue-950/40 border border-blue-900/30' 
-                        : 'bg-blue-50/60 border border-blue-100'
-                    }`}>
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
-                        isDark ? 'bg-blue-900/60 text-blue-300' : 'bg-blue-100 text-blue-600'
-                      }`}>
-                        <ArrowUpRight className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-blue-400' : 'text-blue-700'}`}>{t('transitSendingLabel')}</div>
-                        <div className="mt-2 space-y-1">
-                          <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {t('transitWeightLabel')} <span className="font-bold">{totalOutgoingWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} {t('transitWeightSuffix')}</span>
-                          </div>
-                          <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {t('transitPlacesLabel')} <span className="font-bold">{totalOutgoingPlaces.toLocaleString()} {t('transitPlacesSuffix')}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Incoming stats */}
-                    <div className={`p-4 rounded-xl flex items-start gap-4 transition-all hover:scale-[1.02] ${
-                      isDark 
-                        ? 'bg-purple-950/40 border border-purple-900/30' 
-                        : 'bg-purple-50/60 border border-purple-100'
-                    }`}>
-                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
-                        isDark ? 'bg-purple-900/60 text-purple-300' : 'bg-purple-100 text-purple-600'
-                      }`}>
-                        <ArrowDownLeft className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1">
-                        <div className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-700'}`}>{t('transitReceivingLabel')}</div>
-                        <div className="mt-2 space-y-1">
-                          <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {t('transitWeightLabel')} <span className="font-bold">{totalIncomingWeight.toLocaleString('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: 1 })} {t('transitWeightSuffix')}</span>
-                          </div>
-                          <div className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
-                            {t('transitPlacesLabel')} <span className="font-bold">{totalIncomingPlaces.toLocaleString()} {t('transitPlacesSuffix')}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Filtered shipments list */}
                 {transitShipments.length === 0 ? (
                   <p className="text-gray-500 p-4 text-center">{t('nothingFound')}</p>
                 ) : (
-                  transitShipments.map(s => {
-                    const isOutgoing = s.from_station === myStation;
-                    return (
-                      <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex flex-col gap-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-bold ${isOutgoing ? 'text-blue-600' : 'text-purple-600'}`}>{s.shipment_number}</span>
-                              {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
-                            </div>
-                            <span className="text-sm font-medium">{s.client_name}</span>
+                  transitShipments.map(s => (
+                    <div key={s.id} onClick={() => setSelectedShipment(mapForDetails(s))} className={`cursor-pointer p-5 rounded-xl border ${isDark ? 'bg-gray-800 border-gray-700 hover:bg-gray-750' : 'bg-white border-gray-200 hover:bg-gray-50'}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-blue-600">{s.shipment_number}</span>
+                            {s.is_door_to_door && <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded uppercase font-bold">Door-to-Door</span>}
                           </div>
-                          <div className="flex gap-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                              isOutgoing 
-                                ? 'bg-blue-105 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' 
-                                : 'bg-purple-105 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300'
-                            }`}>
-                              {isOutgoing ? t('transitStatusSent') : t('transitStatusExpected')}
-                            </span>
-                            <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
-                              {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
-                            </span>
-                          </div>
+                          <span className="text-sm font-medium">{s.client_name}</span>
                         </div>
-                        <div className={`text-sm flex flex-wrap gap-x-4 gap-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.from_station} → {s.to_station}</span>
-                          <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {s.weight} {t('kg')} ({s.quantity_places || 1} {t('pcs') || 'мест'})</span>
-                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(s.created_at)}</span>
-                        </div>
+                        <span className="text-xs font-semibold px-2 py-1 rounded bg-orange-100 text-orange-800">
+                          {s.shipment_status === 'LOADED' ? t('statusInWagon') : t('statusInTransit')}
+                        </span>
                       </div>
-                    );
-                  })
+                      <div className={`text-sm flex flex-wrap gap-x-4 gap-y-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {s.from_station} → {s.to_station}</span>
+                        <span className="flex items-center gap-1"><Package className="w-3 h-3" /> {s.weight} {t('kg')} ({s.quantity_places || 1} {t('pcs') || 'мест'})</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatDate(s.created_at)}</span>
+                      </div>
+                    </div>
+                  ))
                 )}
               </div>
             )}

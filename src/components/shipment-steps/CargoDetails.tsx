@@ -121,7 +121,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
         {/* Номер посылки (только для менеджера) */}
         {user?.role === 'manager' && (
           <div>
-            <label className={label}>Номер посылки (6 цифр) <span className="text-red-500">*</span></label>
+            <label className={label}>Номер посылки (согласно талону АСУ, 6 цифр) <span className="text-red-500">*</span></label>
             <div className="relative">
               <input
                 type="text"
@@ -132,7 +132,7 @@ export function CargoDetails({ data, onUpdate, onNext, onBack, theme = 'light' }
                   onUpdate({ shipmentNumber: val });
                 }}
                 className={`${input} ${(data.shipmentNumber && !/^\d{6}$/.test(data.shipmentNumber)) || isDuplicate ? 'border-red-500 focus:ring-red-500' : ''}`}
-                placeholder="Например: 123456"
+                placeholder="Номер талона АСУ (например: 123456)"
               />
               {isChecking && (
                 <div className="absolute right-3 top-2.5 flex items-center">

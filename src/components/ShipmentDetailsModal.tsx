@@ -2,6 +2,7 @@ import { X, Package, MapPin, Calendar, Weight, User, Phone, Printer, FileText } 
 import { useLanguage } from '../contexts/LanguageContext';
 import { QRCodeSVG } from 'qrcode.react';
 import { printWaybill } from '../lib/waybill-printer';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ShipmentDetailsModalProps {
   shipment: {
@@ -35,7 +36,9 @@ interface ShipmentDetailsModalProps {
 
 export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: ShipmentDetailsModalProps) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const isDark = theme === 'dark';
+  const isClient = user?.role === 'individual' || user?.role === 'corporate';
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '-';
@@ -336,7 +339,7 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
           <div className={`${card} flex flex-col items-center`}>
             <h3 className={`${sectionTitle} text-center`}>QR-код отправки</h3>
             <div id="qr-code-container" className={`p-3 rounded-lg border-2 ${isDark ? 'bg-white border-gray-600' : 'bg-white border-gray-200'} shadow-sm`}>
-              <QRCodeSVG value={shipment.shipment_number || shipment.id} size={96} level="H" />
+              <QRCodeSVG value={"CLIENT-QR:" + (shipment.shipment_number || shipment.id)} size={96} level="H" />
             </div>
             <p className={`text-xs mt-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{shipment.shipment_number}</p>
           </div>
@@ -344,23 +347,25 @@ export function ShipmentDetailsModal({ shipment, onClose, theme = 'light' }: Shi
 
         {/* Footer */}
         <div className={`p-6 border-t sticky bottom-0 flex flex-col sm:flex-row gap-3 ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+          {!isClient && (
+            <button
+              onClick={handlePrint}
+              className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
+                isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Printer className="w-4 h-4" />
+              Печать стикеров
+            </button>
+          )}
           <button
-            onClick={handlePrint}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
-              isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Printer className="w-4 h-4" />
-            Печать стикеров
-          </button>
-          <button
-            onClick={() => printWaybill(shipment)}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
+            onClick={() => printWaybill(shipment, isClient)}
+            className={`flex-1 flex-row flex items-center justify-center gap-2 px-6 py-3 rounded-lg border transition-colors ${
               isDark ? 'border-gray-600 text-gray-300 hover:bg-gray-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
             }`}
           >
             <FileText className="w-4 h-4" />
-            Печать накладной
+            {isClient ? 'Посмотреть накладную' : 'Печать накладной'}
           </button>
           <button
             onClick={onClose}

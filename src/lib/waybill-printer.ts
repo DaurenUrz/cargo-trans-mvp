@@ -24,7 +24,7 @@ interface CorporateClient {
   phone?: string;
 }
 
-export async function printWaybill(shipment: any) {
+export async function printWaybill(shipment: any, previewOnly: boolean = false) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
     alert('Пожалуйста, разрешите всплывающие окна для печати накладной.');
@@ -628,6 +628,7 @@ export async function printWaybill(shipment: any) {
       </div>
       </div> <!-- End of .waybill-page -->
 
+      ${previewOnly ? '' : `
       <script>
         window.onload = function() {
           setTimeout(function() {
@@ -640,6 +641,7 @@ export async function printWaybill(shipment: any) {
           }, 1000);
         };
       </script>
+      `}
     </body>
     </html>
   `);

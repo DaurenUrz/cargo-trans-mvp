@@ -75,18 +75,6 @@ func (s *TrackingService) Scan(ctx context.Context, shipmentID, eventType string
 	if err != nil {
 		return model.ScanEvent{}, err
 	}
-	_ = s.repo.AddAuditLog(ctx, model.AuditLog{
-		ID:         uuid.NewString(),
-		UserID:     userID,
-		EntityType: "scan_event",
-		EntityID:   created.ID,
-		Action:     eventType,
-		OldValue:   created.OldStatus,
-		NewValue:   created.NewStatus,
-		StationID:  stationID,
-		Reason:     comment,
-		CreatedAt:  created.ScannedAt,
-	})
 	return created, nil
 }
 

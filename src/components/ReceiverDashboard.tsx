@@ -73,7 +73,31 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   };
 
   const handleScan = useCallback(async (raw: string) => {
-    const id = extractId(raw);
+    const isClientQr = raw.startsWith('CLIENT-QR:');
+
+    // Enforce scanning client screen vs cargo labels
+    if (awaitingCargoScan) {
+      // Phase 2: Scanning the physical cargo box
+      if (isClientQr) {
+        setFeedback({ 
+          type: 'error', 
+          message: 'Ошибка: отсканирован QR-код клиента. Теперь необходимо отсканировать наклейку на самой коробке!' 
+        });
+        return;
+      }
+    } else {
+      // Phase 1: Confirming client presence
+      if (scanMode === 'qr' && !isClientQr) {
+        setFeedback({ 
+          type: 'error', 
+          message: 'Ошибка: отсканирован штрихкод коробки. Сначала необходимо отсканировать QR-код клиента с экрана телефона!' 
+        });
+        return;
+      }
+    }
+
+    const cleanRaw = isClientQr ? raw.substring(10) : raw;
+    const id = extractId(cleanRaw);
     if (!id) return;
 
     setProcessing(true);

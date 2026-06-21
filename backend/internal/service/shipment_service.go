@@ -1075,7 +1075,7 @@ func isAllowedTransition(current, next model.ShipmentLifecycle) bool {
 		model.ShipmentReadyForLoading:   {model.ShipmentLoaded, model.ShipmentInTransit, model.ShipmentOnHold, model.ShipmentArrived},
 		model.ShipmentLoaded:            {model.ShipmentInTransit, model.ShipmentArrived, model.ShipmentDamaged, model.ShipmentReadyForLoading},
 		model.ShipmentInTransit:         {model.ShipmentArrived, model.ShipmentOnHold, model.ShipmentDamaged},
-		model.ShipmentArrived:           {model.ShipmentReadyForIssue, model.ShipmentDamaged},
+		model.ShipmentArrived:           {model.ShipmentReadyForIssue, model.ShipmentDamaged, model.ShipmentIssued},
 		model.ShipmentReadyForIssue:     {model.ShipmentDeliveryAssigned, model.ShipmentIssued},
 		model.ShipmentDeliveryAssigned:  {model.ShipmentOutForDelivery, model.ShipmentReadyForIssue},
 		model.ShipmentOutForDelivery:    {model.ShipmentIssued, model.ShipmentReadyForIssue},

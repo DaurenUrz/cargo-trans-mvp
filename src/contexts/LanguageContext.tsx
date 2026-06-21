@@ -158,7 +158,7 @@ const translations = {
     pages: 'Страницы',
     newShipment: 'Новая отправка',
     activeShipments: 'Активные отправки',
-    transit: 'Транзит',
+    transit: 'В пути',
     arrival: 'Прибытие',
     reports: 'Отчёты',
     wms: 'WMS склад',
@@ -294,7 +294,7 @@ const translations = {
     statusDoorToDoor: 'От дома до дома',
 
     // Transit
-    transitTitle: 'Транзит',
+    transitTitle: 'В пути',
     transitDesc: 'Регистрация перемещения багажа',
     qrScanning: 'Сканирование QR-кода',
     scanQrDesc: 'Отсканируйте QR-код на багаже для регистрации',
@@ -814,7 +814,7 @@ const translations = {
     pages: 'Pages',
     newShipment: 'New Shipment',
     activeShipments: 'Active Shipments',
-    transit: 'Transit',
+    transit: 'In Transit',
     arrival: 'Arrival',
     reports: 'Reports',
     wms: 'WMS Warehouse',
@@ -950,7 +950,7 @@ const translations = {
     statusDoorToDoor: 'Door to Door',
 
     // Transit
-    transitTitle: 'Transit',
+    transitTitle: 'In Transit',
     transitDesc: 'Baggage movement registration',
     qrScanning: 'QR Code Scanning',
     scanQrDesc: 'Scan the QR code on baggage for registration',
@@ -1490,7 +1490,7 @@ const translations = {
     pages: 'Беттер',
     newShipment: 'Жаңа жөнелту',
 
-    transit: 'Транзит',
+    transit: 'В пути',
     arrival: 'Келу',
     reports: 'Есептер',
     wms: 'WMS қойма',
@@ -1622,7 +1622,7 @@ const translations = {
     statusDoorToDoor: 'Үйден үйге',
 
     // Transit
-    transitTitle: 'Транзит',
+    transitTitle: 'В пути',
     transitDesc: 'Багаж қозғалысын тіркеу',
     qrScanning: 'QR-кодты сканерлеу',
     scanQrDesc: 'Тіркеу үшін багаждағы QR-кодты сканерлеңіз',

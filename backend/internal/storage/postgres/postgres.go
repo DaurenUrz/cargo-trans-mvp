@@ -702,17 +702,19 @@ func (r *Repository) ListAuditLogsByUser(ctx context.Context, userID string) ([]
 }
 
 func (r *Repository) ListAuditLogsByShipment(ctx context.Context, shipmentNumber string) ([]model.AuditLog, error) {
-	return r.listAuditLogsWhere(ctx, "WHERE s.shipment_number = $1", shipmentNumber)
+	return r.listAuditLogsWhere(ctx, "WHERE s.shipment_number = $1 OR s2.shipment_number = $1", shipmentNumber)
 }
 
 func (r *Repository) listAuditLogsWhere(ctx context.Context, where string, args ...interface{}) ([]model.AuditLog, error) {
 	query := `
 		SELECT a.id, a.user_id, a.entity_type, a.entity_id, a.action, a.old_value, a.new_value, a.station_id, a.reason, a.created_at,
-			COALESCE(s.shipment_number, '') as shipment_number,
+			COALESCE(s.shipment_number, s2.shipment_number, '') as shipment_number,
 			COALESCE(a.operator_name, u.name, '\u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u043e') as user_name,
 			COALESCE(u.role, 'system') as user_role
 		FROM audit_log a
 		LEFT JOIN shipments s ON a.entity_id = s.id AND a.entity_type = 'shipment'
+		LEFT JOIN scan_events se ON a.entity_id = se.id AND a.entity_type = 'scan_event'
+		LEFT JOIN shipments s2 ON se.shipment_id = s2.id
 		LEFT JOIN users u ON a.user_id = u.id
 	`
 	if where != "" {
