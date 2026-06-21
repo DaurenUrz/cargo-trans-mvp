@@ -1048,15 +1048,32 @@ func (s *ShipmentService) transition(ctx context.Context, id string, next model.
 			receiverMsg = fmt.Sprintf("🚚 Курьер едет к вам с грузом %s.\nНазовите ему код: *%s*", s.ShipmentNumber, issueCode)
 		}
 
-		if senderMsg != "" && senderPhone != "" {
-			_ = whatsapp.SendMessage(senderPhone, senderMsg)
-		}
+		if (newStatus == model.ShipmentArrived || newStatus == model.ShipmentReadyForIssue) && !s.IsDoorToDoor {
+			qrVal := s.ShipmentNumber
+			if qrVal == "" {
+				qrVal = s.ID
+			}
+			qrURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=CLIENT-QR:%s", qrVal)
 
-		if receiverMsg != "" && receiverPhone != "" && receiverPhone != senderPhone {
-			time.Sleep(500 * time.Millisecond)
-			_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
-		} else if receiverMsg != "" && receiverPhone == senderPhone && senderMsg == "" {
-			_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
+			if receiverMsg != "" && receiverPhone != "" {
+				_ = whatsapp.SendFileByUrl(receiverPhone, qrURL, fmt.Sprintf("qr_%s.png", qrVal), receiverMsg)
+			}
+
+			if senderMsg != "" && senderPhone != "" && senderPhone != receiverPhone {
+				time.Sleep(500 * time.Millisecond)
+				_ = whatsapp.SendMessage(senderPhone, senderMsg)
+			}
+		} else {
+			if senderMsg != "" && senderPhone != "" {
+				_ = whatsapp.SendMessage(senderPhone, senderMsg)
+			}
+
+			if receiverMsg != "" && receiverPhone != "" && receiverPhone != senderPhone {
+				time.Sleep(500 * time.Millisecond)
+				_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
+			} else if receiverMsg != "" && receiverPhone == senderPhone && senderMsg == "" {
+				_ = whatsapp.SendMessage(receiverPhone, receiverMsg)
+			}
 		}
 	}(updated, next)
 	return updated, nil

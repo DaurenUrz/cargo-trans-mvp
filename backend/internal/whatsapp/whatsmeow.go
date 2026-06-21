@@ -85,6 +85,67 @@ func SendMessage(phone, message string) error {
 	return err
 }
 
+// SendFileByUrl sends a file by URL via Green API.
+func SendFileByUrl(phone, urlFile, fileName, caption string) error {
+	idInstance := os.Getenv("GREEN_API_ID")
+	apiToken := os.Getenv("GREEN_API_TOKEN")
+	apiURL := os.Getenv("GREEN_API_URL") // e.g. 7107.api.greenapi.com
+
+	if idInstance == "" || apiToken == "" {
+		log.Println("[WHATSAPP] GREEN_API_ID or GREEN_API_TOKEN not set")
+		return fmt.Errorf("green api credentials not configured")
+	}
+	if apiURL == "" {
+		apiURL = "api.green-api.com"
+	}
+
+	// Normalize phone number to international format (77XXXXXXXXX)
+	phone = strings.Map(func(r rune) rune {
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, phone)
+
+	switch {
+	case len(phone) == 11 && strings.HasPrefix(phone, "8"):
+		phone = "7" + phone[1:]
+	case len(phone) == 10 && strings.HasPrefix(phone, "7"):
+		phone = "7" + phone
+	case len(phone) == 10:
+		phone = "77" + phone
+	}
+
+	chatID := phone + "@c.us"
+	log.Printf("[WHATSAPP] Отправка файла на %s → chatID: %s, URL: %s", phone, chatID, urlFile)
+
+	url := fmt.Sprintf("https://%s/waInstance%s/sendFileByUrl/%s", apiURL, idInstance, apiToken)
+
+	payload := map[string]string{
+		"chatId":   chatID,
+		"urlFile":  urlFile,
+		"fileName": fileName,
+		"caption":  caption,
+	}
+	bodyBytes, _ := json.Marshal(payload)
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Post(url, "application/json", bytes.NewReader(bodyBytes))
+	if err != nil {
+		log.Printf("[WHATSAPP] ❌ HTTP error sending file: %v", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[WHATSAPP] ❌ Green API returned status %d for %s", resp.StatusCode, phone)
+		return fmt.Errorf("green api status %d", resp.StatusCode)
+	}
+
+	log.Printf("[WHATSAPP] ✅ Файл успешно отправлен на %s через Green API", phone)
+	return nil
+}
+
 // IsConnected returns true if Green API credentials are configured.
 func IsConnected() bool {
 	return os.Getenv("GREEN_API_ID") != "" && os.Getenv("GREEN_API_TOKEN") != ""

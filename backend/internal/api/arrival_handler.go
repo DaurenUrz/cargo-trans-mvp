@@ -146,9 +146,21 @@ func (s *Server) handleNotifyArrival(w http.ResponseWriter, r *http.Request) {
 			shipment.ShipmentNumber, shipment.ToStation, issueCode, shipment.ClientName)
 	}
 
-	if err := whatsapp.SendMessage(phone, msg); err != nil {
-		writeError(w, http.StatusBadGateway, "Ошибка WhatsApp: "+err.Error())
-		return
+	if !shipment.IsDoorToDoor {
+		qrVal := shipment.ShipmentNumber
+		if qrVal == "" {
+			qrVal = shipment.ID
+		}
+		qrURL := fmt.Sprintf("https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=CLIENT-QR:%s", qrVal)
+		if err := whatsapp.SendFileByUrl(phone, qrURL, fmt.Sprintf("qr_%s.png", qrVal), msg); err != nil {
+			writeError(w, http.StatusBadGateway, "Ошибка WhatsApp: "+err.Error())
+			return
+		}
+	} else {
+		if err := whatsapp.SendMessage(phone, msg); err != nil {
+			writeError(w, http.StatusBadGateway, "Ошибка WhatsApp: "+err.Error())
+			return
+		}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{
