@@ -160,9 +160,9 @@ func (s *Server) routes() chi.Router {
 		sub.Use(s.rateLimiter)
 
 		sub.Get("/health", s.handleHealth)
-		sub.HandleFunc("/health/sync-clients", s.handleSyncClients)
 
 		sub.Route("/api", func(api chi.Router) {
+			api.HandleFunc("/health/sync-clients", s.handleSyncClients)
 			s.mountAuthRoutes(api)
 			s.mountUserRoutes(api)
 			s.mountReferenceRoutes(api)
