@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -101,14 +102,15 @@ func (s *Server) handleCreateShipment(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusForbidden, "Только менеджер может вводить номер посылки вручную")
 			return
 		}
+		numToCheck := strings.TrimPrefix(req.ShipmentNumber, "SH-")
 		isDigitsOnly := true
-		for _, char := range req.ShipmentNumber {
+		for _, char := range numToCheck {
 			if char < '0' || char > '9' {
 				isDigitsOnly = false
 				break
 			}
 		}
-		if len(req.ShipmentNumber) != 6 || !isDigitsOnly {
+		if len(numToCheck) != 6 || !isDigitsOnly {
 			writeError(w, http.StatusBadRequest, "Номер посылки должен состоять ровно из 6 цифр. Если номер короче, дополните его нулями спереди (например: 000123)")
 			return
 		}
