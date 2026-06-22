@@ -6,6 +6,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { withApiBase } from '../lib/api-base';
 
 export function Login() {
+  const isRailway = window.location.hostname.includes('railway.app') || window.location.hostname.includes('sincere-recreation-production.up.railway.app');
+
   const { login: doLogin } = useAuth();
   const { t } = useLanguage();
   const [login, setLogin] = useState('');
@@ -77,6 +79,39 @@ export function Login() {
 
   if (showRegister) {
     return <Register onBackToLogin={() => setShowRegister(false)} />;
+  }
+
+  if (isRailway) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Package className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">CargoTrans</h1>
+            <p className="text-gray-600">Система переехала на новый сервер</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Внимание! Наш сайт переехал</h2>
+            <p className="text-gray-600 mb-8 text-sm leading-relaxed">
+              Для повышения скорости и стабильности работы мы перенесли систему на новые, более мощные серверы. Пожалуйста, используйте новый адрес для входа.
+            </p>
+            <a
+              href="http://185.47.167.38"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
+            >
+              <LogIn className="w-5 h-5" />
+              Перейти на новый сайт
+            </a>
+            <p className="text-xs text-gray-400 mt-5 font-mono">
+              http://185.47.167.38
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
