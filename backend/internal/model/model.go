@@ -313,11 +313,26 @@ type EmployeeStat struct {
 	ScannedCount int    `json:"scanned_count"`
 }
 
+type DailyStationStat struct {
+	Day     string `json:"day"`
+	Station string `json:"station"`
+	Count   int    `json:"count"`
+}
+
+type DailyEmployeeStat struct {
+	Day          string `json:"day"`
+	EmployeeName string `json:"employee_name"`
+	Role         string `json:"role"`
+	Count        int    `json:"count"`
+}
+
 type LeaderDashboardReport struct {
-	TotalWeightKg float64             `json:"total_weight_kg"`
-	TotalPlaces   int                 `json:"total_places"`
-	StatusSummary []StatusSummaryItem `json:"status_summary"`
-	EmployeeStats []EmployeeStat      `json:"employee_stats"`
+	TotalWeightKg      float64             `json:"total_weight_kg"`
+	TotalPlaces        int                 `json:"total_places"`
+	StatusSummary      []StatusSummaryItem `json:"status_summary"`
+	EmployeeStats      []EmployeeStat      `json:"employee_stats"`
+	DailyStationStats  []DailyStationStat  `json:"daily_station_stats"`
+	DailyEmployeeStats []DailyEmployeeStat `json:"daily_employee_stats"`
 }
 
 type ShipmentFilter struct {

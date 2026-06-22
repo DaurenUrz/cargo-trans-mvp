@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { withApiBase } from '../lib/api-base';
 import { ManagerDashboard } from './ManagerDashboard';
 import { Reports } from './Reports';
+import { AuditLog } from './AuditLog';
 import { 
   BarChart3, 
   Package, 
@@ -11,7 +12,8 @@ import {
   Users, 
   RefreshCw, 
   ClipboardList, 
-  FileSpreadsheet 
+  FileSpreadsheet,
+  Activity
 } from 'lucide-react';
 
 interface EmployeeStat {
@@ -26,11 +28,26 @@ interface StatusSummaryItem {
   count: number;
 }
 
+interface DailyStationStat {
+  day: string;
+  station: string;
+  count: number;
+}
+
+interface DailyEmployeeStat {
+  day: string;
+  employee_name: string;
+  role: string;
+  count: number;
+}
+
 interface LeaderDashboardReport {
   total_weight_kg: number;
   total_places: number;
   status_summary: StatusSummaryItem[];
   employee_stats: EmployeeStat[];
+  daily_station_stats: DailyStationStat[];
+  daily_employee_stats: DailyEmployeeStat[];
 }
 
 const STATUS_TRANSLATIONS: Record<string, { label: string; color: string }> = {
@@ -70,7 +87,8 @@ const ROLE_TRANSLATIONS: Record<string, string> = {
 export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const isDark = theme === 'dark';
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'shipments' | 'reports' | 'audit'>('overview');
+  const currentTab = activeTab;
   const [report, setReport] = useState<LeaderDashboardReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -136,6 +154,23 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
     );
   }
 
+  if (activeTab === 'audit') {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Журнал аудита</h2>
+          <button 
+            onClick={() => setActiveTab('overview')}
+            className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            ← Вернуться к статистике
+          </button>
+        </div>
+        <AuditLog theme={theme} />
+      </div>
+    );
+  }
+
   // Calculate some helper stats from report data
   const totalShipments = report?.status_summary?.reduce((acc, item) => acc + item.count, 0) || 0;
   const activeShipments = report?.status_summary
@@ -174,7 +209,7 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
-                activeTab === 'overview'
+                currentTab === 'overview'
                   ? isDark ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 shadow-sm'
                   : isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'
               }`}
@@ -184,17 +219,36 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
             </button>
             <button
               onClick={() => setActiveTab('shipments')}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md text-gray-600 hover:text-gray-900 transition-all dark:text-gray-400 dark:hover:text-gray-200"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                currentTab === 'shipments'
+                  ? isDark ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 shadow-sm'
+                  : isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
               <ClipboardList className="w-3.5 h-3.5 inline mr-1" />
               Грузы
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className="px-3 py-1.5 text-xs font-semibold rounded-md text-gray-600 hover:text-gray-900 transition-all dark:text-gray-400 dark:hover:text-gray-200"
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                currentTab === 'reports'
+                  ? isDark ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 shadow-sm'
+                  : isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'
+              }`}
             >
               <FileSpreadsheet className="w-3.5 h-3.5 inline mr-1" />
               Отчеты
+            </button>
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                currentTab === 'audit'
+                  ? isDark ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 shadow-sm'
+                  : isDark ? 'text-gray-400 hover:text-gray-200' : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5 inline mr-1" />
+              Аудит
             </button>
           </div>
         </div>
@@ -386,6 +440,105 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
                           </td>
                           <td className="py-3 px-3 text-right font-mono font-bold text-emerald-500">
                             {emp.scanned_count}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Station and Daily Employee stats */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+            {/* Daily Registrations by Station */}
+            <div className={`p-6 rounded-xl border lg:col-span-6 ${
+              isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
+            }`}>
+              <h3 className={`text-base font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Оформлено по дням (Отделения)
+              </h3>
+              <div className="max-h-[350px] overflow-y-auto pr-1">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className={`border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'} text-xs font-semibold`}>
+                      <th className="py-2.5 px-3">Дата</th>
+                      <th className="py-2.5 px-3">Отделение</th>
+                      <th className="py-2.5 px-3 text-right">Оформлено</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!report.daily_station_stats || report.daily_station_stats.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="py-6 text-center text-gray-500">
+                          Нет данных по дням для отделений
+                        </td>
+                      </tr>
+                    ) : (
+                      report.daily_station_stats.map((stat, idx) => (
+                        <tr 
+                          key={idx} 
+                          className={`border-b last:border-none transition-colors ${
+                            isDark ? 'border-gray-700/50 hover:bg-gray-700/20 text-gray-200' : 'border-gray-100 hover:bg-gray-50 text-gray-800'
+                          }`}
+                        >
+                          <td className="py-3 px-3 font-mono text-xs">{stat.day}</td>
+                          <td className="py-3 px-3 font-medium">{stat.station}</td>
+                          <td className="py-3 px-3 text-right font-mono font-bold text-blue-500">
+                            {stat.count}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Daily Registrations by Employee */}
+            <div className={`p-6 rounded-xl border lg:col-span-6 ${
+              isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200 shadow-sm'
+            }`}>
+              <h3 className={`text-base font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Оформлено по дням (Сотрудники)
+              </h3>
+              <div className="max-h-[350px] overflow-y-auto pr-1">
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className={`border-b ${isDark ? 'border-gray-700 text-gray-400' : 'border-gray-200 text-gray-500'} text-xs font-semibold`}>
+                      <th className="py-2.5 px-3">Дата</th>
+                      <th className="py-2.5 px-3">Сотрудник</th>
+                      <th className="py-2.5 px-3">Роль</th>
+                      <th className="py-2.5 px-3 text-right">Оформлено</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {!report.daily_employee_stats || report.daily_employee_stats.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-6 text-center text-gray-500">
+                          Нет данных по дням для сотрудников
+                        </td>
+                      </tr>
+                    ) : (
+                      report.daily_employee_stats.map((stat, idx) => (
+                        <tr 
+                          key={idx} 
+                          className={`border-b last:border-none transition-colors ${
+                            isDark ? 'border-gray-700/50 hover:bg-gray-700/20 text-gray-200' : 'border-gray-100 hover:bg-gray-50 text-gray-800'
+                          }`}
+                        >
+                          <td className="py-3 px-3 font-mono text-xs">{stat.day}</td>
+                          <td className="py-3 px-3 font-medium">{stat.employee_name}</td>
+                          <td className="py-3 px-3 text-xs">
+                            <span className={`px-1.5 py-0.5 rounded ${
+                              isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {ROLE_TRANSLATIONS[stat.role] || stat.role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right font-mono font-bold text-emerald-500">
+                            {stat.count}
                           </td>
                         </tr>
                       ))

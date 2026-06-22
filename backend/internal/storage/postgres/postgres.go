@@ -926,6 +926,56 @@ func (r *Repository) GetLeaderDashboardReport(ctx context.Context) (model.Leader
 		report.EmployeeStats = append(report.EmployeeStats, item)
 	}
 
+	// 4. Daily registrations by station
+	queryDailyStations := `
+		SELECT 
+			TO_CHAR(created_at AT TIME ZONE 'Asia/Almaty', 'YYYY-MM-DD') AS day,
+			from_station AS station,
+			COUNT(*) AS count
+		FROM shipments
+		GROUP BY 1, 2
+		ORDER BY 1 DESC, 2 ASC
+	`
+	rowsStations, err := r.pool.Query(ctx, queryDailyStations)
+	if err != nil {
+		return report, err
+	}
+	defer rowsStations.Close()
+	report.DailyStationStats = []model.DailyStationStat{}
+	for rowsStations.Next() {
+		var item model.DailyStationStat
+		if err := rowsStations.Scan(&item.Day, &item.Station, &item.Count); err != nil {
+			return report, err
+		}
+		report.DailyStationStats = append(report.DailyStationStats, item)
+	}
+
+	// 5. Daily registrations by employee
+	queryDailyEmployees := `
+		SELECT 
+			TO_CHAR(s.created_at AT TIME ZONE 'Asia/Almaty', 'YYYY-MM-DD') AS day,
+			COALESCE(u.name, s.created_by, 'Система') AS employee_name,
+			COALESCE(u.role, 'system') AS role,
+			COUNT(*) AS count
+		FROM shipments s
+		LEFT JOIN users u ON s.created_by = u.id
+		GROUP BY 1, 2, 3
+		ORDER BY 1 DESC, 4 DESC
+	`
+	rowsEmployees, err := r.pool.Query(ctx, queryDailyEmployees)
+	if err != nil {
+		return report, err
+	}
+	defer rowsEmployees.Close()
+	report.DailyEmployeeStats = []model.DailyEmployeeStat{}
+	for rowsEmployees.Next() {
+		var item model.DailyEmployeeStat
+		if err := rowsEmployees.Scan(&item.Day, &item.EmployeeName, &item.Role, &item.Count); err != nil {
+			return report, err
+		}
+		report.DailyEmployeeStats = append(report.DailyEmployeeStats, item)
+	}
+
 	return report, nil
 }
 

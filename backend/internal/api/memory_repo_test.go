@@ -596,8 +596,10 @@ func (m *memoryRepo) GetLeaderDashboardReport(_ context.Context) (model.LeaderDa
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	report := model.LeaderDashboardReport{
-		StatusSummary: []model.StatusSummaryItem{},
-		EmployeeStats: []model.EmployeeStat{},
+		StatusSummary:      []model.StatusSummaryItem{},
+		EmployeeStats:      []model.EmployeeStat{},
+		DailyStationStats:  []model.DailyStationStat{},
+		DailyEmployeeStats: []model.DailyEmployeeStat{},
 	}
 	for _, shipment := range m.shipments {
 		report.TotalPlaces += shipment.QuantityPlaces
