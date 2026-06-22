@@ -35,7 +35,12 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   const [scanMode, setScanMode] = useState<'qr' | 'manual'>('qr');
   const [weightMode, setWeightMode] = useState<{ active: boolean, declared: string, shipmentId: string, shipmentNumber: string } | null>(null);
   const [actualWeight, setActualWeight] = useState('');
-  const [awaitingCargoScan, setAwaitingCargoScan] = useState<{ id: string, number: string } | null>(null);
+  const [awaitingCargoScan, setAwaitingCargoScan] = useState<{
+    id: string;
+    number: string;
+    quantityPlaces?: number;
+    scannedIssued?: number[];
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const weightInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,6 +78,9 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
   };
 
   const handleScan = useCallback(async (raw: string) => {
+    // Clear input immediately to prevent text concatenation
+    setScanInput('');
+
     const isClientQr = raw.startsWith('CLIENT-QR:');
 
     // Enforce scanning client screen vs cargo labels
@@ -85,30 +93,32 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         });
         return;
       }
-    } else {
-      // Phase 1: Confirming client presence
-      if (scanMode === 'qr' && !isClientQr) {
-        setFeedback({ 
-          type: 'error', 
-          message: 'Ошибка: отсканирован штрихкод коробки. Сначала необходимо отсканировать QR-код клиента с экрана телефона!' 
-        });
-        return;
+    }
+
+    let clientQrCode = "";
+    let cleanRaw = raw;
+    if (isClientQr) {
+      const parts = raw.substring(10).split(':');
+      cleanRaw = parts[0];
+      if (parts.length > 1) {
+        clientQrCode = parts[1];
       }
     }
 
-    const cleanRaw = isClientQr ? raw.substring(10) : raw;
     const id = extractId(cleanRaw);
     if (!id) return;
 
     setProcessing(true);
-    setScanInput('');
 
     try {
       const token = localStorage.getItem('token');
 
       // --- PHASE 2: Scanning the printed cargo label on the shelf ---
       if (awaitingCargoScan) {
-        if (id !== awaitingCargoScan.id && id !== awaitingCargoScan.number) {
+        const scannedBase = id.replace(/-\d+-\d+$/, '');
+        const targetBase = awaitingCargoScan.number.replace(/-\d+-\d+$/, '');
+        const targetId = awaitingCargoScan.id;
+        if (id !== targetId && scannedBase !== targetBase) {
           setFeedback({ 
             type: 'error', 
             message: `Ошибка: отсканирован не тот груз (ожидается ${awaitingCargoScan.number})` 
@@ -118,7 +128,7 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         }
 
         // Correct cargo scanned! Send to smart-scan to execute the automatic ISSUED action
-        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(awaitingCargoScan.id)}/smart-scan`), {
+        const res = await fetch(withApiBase(`/api/shipments/${encodeURIComponent(id)}/smart-scan`), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -131,7 +141,8 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         const body = await res.json().catch(() => ({}));
 
         if (res.ok) {
-          const shipmentNum = body.shipment?.shipment_number || awaitingCargoScan.number;
+          const updatedShipment = body.shipment;
+          const shipmentNum = updatedShipment?.shipment_number || awaitingCargoScan.number;
           const msg = body.message || `Груз ${shipmentNum} УСПЕШНО ВЫДАН клиенту ✓`;
 
           setFeedback({ type: 'success', message: msg });
@@ -143,7 +154,19 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
             message: msg,
           }, ...prev]);
 
-          setAwaitingCargoScan(null); // Reset the 2-step phase on success
+          if (updatedShipment && updatedShipment.shipment_status === 'ISSUED') {
+            setAwaitingCargoScan(null); // Reset the 2-step phase on final success
+          } else if (updatedShipment) {
+            // Keep awaiting scans for the remaining places
+            setAwaitingCargoScan({
+              id: updatedShipment.id,
+              number: updatedShipment.shipment_number,
+              quantityPlaces: updatedShipment.quantity_places || 1,
+              scannedIssued: updatedShipment.scanned_places?.issued || []
+            });
+          } else {
+            setAwaitingCargoScan(null);
+          }
         } else {
           setFeedback({ type: 'error', message: body.error || 'Ошибка при выдаче груза' });
         }
@@ -202,7 +225,31 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
       const shipment = await checkRes.json();
 
       // If the scanned shipment is in ARRIVED / READY_FOR_ISSUE status, initiate the 2-step issuance!
-      if (shipment.shipment_status === 'ARRIVED' || shipment.shipment_status === 'READY_FOR_ISSUE') {
+      // Exception: train_receiver скинирует коробки для погрузки/транзита, не выдаёт клиентам
+      const isTrainReceiver = user?.role === 'train_receiver';
+
+      if (!isTrainReceiver && (shipment.shipment_status === 'ARRIVED' || shipment.shipment_status === 'READY_FOR_ISSUE')) {
+        if (scanMode === 'qr' && !isClientQr) {
+          setFeedback({ 
+            type: 'error', 
+            message: 'Ошибка: отсканирован штрихкод коробки. Сначала необходимо отсканировать QR-код клиента с экрана телефона!' 
+          });
+          setProcessing(false);
+          return;
+        }
+
+        if (scanMode === 'qr' && isClientQr) {
+          const expectedCode = shipment.issue_code || '';
+          if (expectedCode !== '' && clientQrCode !== expectedCode) {
+            setFeedback({ 
+              type: 'error', 
+              message: 'Неверный QR-код выдачи или подделка! Попросите клиента обновить QR-код.' 
+            });
+            setProcessing(false);
+            return;
+          }
+        }
+
         // Enforce active destination station matching
         const userStation = user?.station || '';
         if (userStation && shipment.to_station && userStation !== shipment.to_station) {
@@ -225,7 +272,12 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
         }
 
         // Succesfully validated step 1 (Client's QR check) - enter Step 2!
-        setAwaitingCargoScan({ id: shipment.id, number: shipment.shipment_number });
+        setAwaitingCargoScan({
+          id: shipment.id,
+          number: shipment.shipment_number,
+          quantityPlaces: shipment.quantity_places || 1,
+          scannedIssued: shipment.scanned_places?.issued || []
+        });
         setFeedback({ 
           type: 'warning', 
           message: '👤 Клиент рядом! Теперь отсканируйте штрихкод груза на коробке' 
@@ -539,6 +591,11 @@ export function ReceiverDashboard({ theme = 'light' }: ReceiverDashboardProps) {
               {awaitingCargoScan && (
                 <div className={`mt-3 p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-center ${isDark ? 'text-yellow-400' : 'text-yellow-800'}`}>
                   <p className="font-bold text-sm">👤 КЛИЕНТ ПОДТВЕРЖДЕН ({awaitingCargoScan.number})</p>
+                  {awaitingCargoScan.quantityPlaces && awaitingCargoScan.quantityPlaces > 1 ? (
+                    <p className={`text-xs mt-1 font-semibold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                      Выдано мест: {awaitingCargoScan.scannedIssued?.length || 0} из {awaitingCargoScan.quantityPlaces}
+                    </p>
+                  ) : null}
                   <p className="text-xs mt-1">Отсканируйте наклейку на самом грузе для завершения выдачи</p>
                   <button 
                     onClick={() => setAwaitingCargoScan(null)}
