@@ -132,7 +132,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   // 2. «Ожидают привоза»
   const waitingShipments = applySortAndFilter(s.filter(x => 
     !x.is_door_to_door && 
-    x.from_station === myStation &&
+    (!myStation || x.from_station === myStation) &&
     ['CREATED', 'PAYMENT_PENDING', 'PAID', 'CREATED_DOOR'].includes(x.shipment_status || x.status) &&
     // Ожидают привоза только те, которые клиент создал онлайн самостоятельно
     !isStaffCreated(x) &&
@@ -141,7 +141,7 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
 
   // 3. «Активные»
   const activeShipmentsList = applySortAndFilter(s.filter(x => 
-    x.from_station === myStation &&
+    (!myStation || x.from_station === myStation) &&
     (
       ['AT_STATION_INTAKE', 'READY_FOR_LOADING', 'LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) ||
       // Посылки, оформленные/оплаченные менеджером, которые физически уже в офисе
@@ -154,13 +154,13 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
   ));
 
   const arrivalShipments = applySortAndFilter(s.filter(x => 
-    x.to_station === myStation &&
+    (!myStation || x.to_station === myStation) &&
     ['ARRIVED', 'READY_FOR_ISSUE', 'DELIVERY_ASSIGNED', 'OUT_FOR_DELIVERY'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
 
   const transitShipments = applySortAndFilter(s.filter(x =>
-    x.to_station === myStation &&
+    (!myStation || x.to_station === myStation) &&
     ['LOADED', 'IN_TRANSIT'].includes(x.shipment_status || x.status) &&
     matchSearch(x)
   ));
@@ -258,7 +258,9 @@ export function ManagerDashboard({ theme = 'light' }: { theme?: 'light' | 'dark'
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex-1">
           <h1 className="text-2xl font-bold mb-2">{t('managerDashboard')}</h1>
-          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{t('manageShipmentsAtStation')} {myStation}</p>
+          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+            {myStation ? `${t('manageShipmentsAtStation')} ${myStation}` : 'Все отправления по всем филиалам'}
+          </p>
           <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
             {t('totalShipmentsCount').replace('{{count}}', String(
               activeTab === 'waiting' ? waitingShipments.length :
