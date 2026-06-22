@@ -95,9 +95,6 @@ export function Login() {
 
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <h2 className="text-xl font-bold text-gray-900 mb-4">Внимание! Наш сайт переехал</h2>
-            <p className="text-gray-600 mb-8 text-sm leading-relaxed">
-              Для повышения скорости и стабильности работы мы перенесли систему на новые, более мощные серверы. Пожалуйста, используйте новый адрес для входа.
-            </p>
             <a
               href="http://185.47.167.38"
               className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:-translate-y-0.5"
