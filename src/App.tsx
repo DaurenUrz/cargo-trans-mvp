@@ -33,6 +33,7 @@ import { ShipmentArchive } from './components/ShipmentArchive';
 
 import { ZebraTerminal } from './components/ZebraTerminal';
 import { LeaderOverview } from './components/LeaderOverview';
+import { Presentation } from './components/Presentation';
 
 function AppContent() {
   const { user, isAuthenticated } = useAuth();
@@ -48,10 +49,10 @@ function AppContent() {
 
   const [currentPage, setCurrentPage] = useState(() => {
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'reports', 'payments', 'audit', 'settings', 'corporate', 'archive'],
-      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'individual-clients', 'audit', 'payments', 'archive'],
-      direction_head: ['dashboard'],
-      chief_head: ['dashboard'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'reports', 'payments', 'audit', 'settings', 'corporate', 'archive', 'presentation'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'individual-clients', 'audit', 'payments', 'archive', 'presentation'],
+      direction_head: ['dashboard', 'presentation'],
+      chief_head: ['dashboard', 'presentation'],
     };
     const role = user?.role || '';
     const allowed = allowedByRole[role] || null;
@@ -85,10 +86,10 @@ function AppContent() {
   useEffect(() => {
     if (!user?.role) return;
     const allowedByRole: Record<string, string[]> = {
-      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'reports', 'payments', 'audit', 'settings', 'corporate', 'archive'],
-      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'individual-clients', 'audit', 'payments', 'archive'],
-      direction_head: ['dashboard'],
-      chief_head: ['dashboard'],
+      manager: ['dashboard', 'new-shipment', 'arrival', 'transit', 'reports', 'payments', 'audit', 'settings', 'corporate', 'archive', 'presentation'],
+      admin: ['dashboard', 'new-shipment', 'active-shipments', 'transit', 'arrival', 'door-to-door', 'reports', 'settings', 'corporate', 'individual-clients', 'audit', 'payments', 'archive', 'presentation'],
+      direction_head: ['dashboard', 'presentation'],
+      chief_head: ['dashboard', 'presentation'],
       receiver: ['receiver'],
       train_receiver: ['receiver'],
       mobile_group: ['auditor'],
@@ -332,6 +333,8 @@ function AppContent() {
         return <ShipmentArchive theme={theme} />;
       case 'door-to-door':
         return <DoorToDoorShipments theme={theme} />;
+      case 'presentation':
+        return <Presentation onClose={() => setCurrentPage('dashboard')} />;
       default:
         return <NewShipment theme={theme} />;
     }
