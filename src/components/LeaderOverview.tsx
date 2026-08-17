@@ -110,10 +110,6 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
           total_weight_kg: 6177,
           total_places: 439,
           status_summary: [
-            { status: 'ISSUED', count: 48 },
-            { status: 'IN_TRANSIT', count: 59 },
-            { status: 'PAID', count: 24 },
-            { status: 'READY_FOR_LOADING', count: 22 },
             { status: 'ISSUED', count: 360 },
             { status: 'IN_TRANSIT', count: 35 },
             { status: 'PAID', count: 22 },
@@ -121,16 +117,16 @@ export function LeaderOverview({ theme = 'light' }: { theme?: 'light' | 'dark' }
             { status: 'ARRIVED', count: 6 },
           ],
           employee_stats: [
-            { name: 'Аипова Асемгуль Турашовна', role: 'manager', created_count: 22, scanned_count: 0 },
             { name: 'Аипова Таттыгуль Турашевна', role: 'manager', created_count: 44, scanned_count: 0 },
+            { name: 'Аипова Асемгуль Турашовна', role: 'manager', created_count: 22, scanned_count: 0 },
             { name: 'Амирбек Нурлан', role: 'train_receiver', created_count: 0, scanned_count: 104 },
             { name: 'Жумагулов Бауржан', role: 'receiver', created_count: 15, scanned_count: 88 },
             { name: 'Серікқалиев Данияр', role: 'courier', created_count: 0, scanned_count: 42 },
           ],
           daily_station_stats: [
-            { day: '2026-08-17', station: 'Алматы-1', count: 42 },
-            { day: '2026-08-17', station: 'Астана Нұрлы Жол', count: 38 },
-            { day: '2026-08-17', station: 'Шымкент', count: 31 },
+            { day: '2026-08-17', station: 'Алматы-1', count: 182 },
+            { day: '2026-08-17', station: 'Астана Нұрлы Жол', count: 154 },
+            { day: '2026-08-17', station: 'Шымкент', count: 103 },
           ],
           daily_employee_stats: [
             { day: '2026-08-17', employee_name: 'Аипова Таттыгуль Турашевна', role: 'manager', count: 44 },
